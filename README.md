@@ -28,8 +28,8 @@ A powerful command-line tool for extracting data from Smartsheet and generating 
 
 ```bash
 # Clone the repository
-git clone https://github.com/kevinjarnot/smartsheet2postgres.git
-cd smartsheet2postgres
+git clone https://github.com/uptimeinstitute/ss2db.git
+cd ss2db
 
 # Install in development mode
 pip install -e .
@@ -489,8 +489,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - 📧 **Email**: kevin.jarnot@uptimeinstitute.com
-- 🐛 **Issues**: [GitHub Issues](https://github.com/kevinjarnot/smartsheet2postgres/issues)
-- 📖 **Documentation**: [Wiki](https://github.com/kevinjarnot/smartsheet2postgres/wiki)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/uptimeinstitute/ss2db/issues)
+- 📖 **Documentation**: [Wiki](https://github.com/uptimeinstitute/ss2db/wiki)
 
 ## Changelog
 
