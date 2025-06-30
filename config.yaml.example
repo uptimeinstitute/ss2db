@@ -1,0 +1,68 @@
+# Smartsheet Configuration
+smartsheet:
+  api_base_url: "https://api.smartsheet.com/2.0"
+  request_timeout: 30
+  retry_attempts: 3
+  retry_delay: 5
+  rate_limit_buffer: 5  # Requests to keep in reserve
+
+# Output Configuration
+output:
+  directory: "./exports"
+  file_prefix: "smartsheet"
+  backup_existing: true
+  compression: false
+  timestamp_format: "%Y%m%d_%H%M%S"
+
+# Database Configuration
+database:
+  type: "postgresql"  # postgresql or mysql
+  
+  # PostgreSQL specific settings
+  postgresql:
+    schema_name: "public"
+    table_prefix: "smartsheet_"
+    create_indexes: true
+    include_metadata_columns: true
+    batch_size: 1000
+    quote_identifiers: true
+    use_jsonb: true
+  
+  # MySQL specific settings  
+  mysql:
+    database_name: null  # Uses connection database if not specified
+    table_prefix: "smartsheet_"
+    create_indexes: true
+    include_metadata_columns: true
+    batch_size: 1000
+    quote_identifiers: true
+    engine: "InnoDB"
+    charset: "utf8mb4"
+    collation: "utf8mb4_unicode_ci"
+    use_json: true  # Use JSON data type (MySQL 5.7+) vs TEXT
+
+# Processing Options
+processing:
+  validate_data: true
+  skip_empty_rows: true
+  handle_duplicates: "error"  # error, skip, overwrite
+  date_format: "iso"  # iso, us, eu, custom
+  timezone: "UTC"
+  max_field_length: 65535
+  null_values: ["", "NULL", "null", "None"]
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "detailed"  # simple, detailed, json
+  file_rotation: true
+  max_file_size: "10MB"
+  backup_count: 5
+
+# Advanced Options
+advanced:
+  memory_limit_mb: 1024
+  chunk_size: 10000
+  parallel_processing: false
+  cache_responses: true
+  cache_ttl_hours: 24

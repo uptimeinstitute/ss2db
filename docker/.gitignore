@@ -1,0 +1,16 @@
+# Ignore local data directories if using bind mounts
+data/
+logs/
+
+# Ignore any local overrides
+docker-compose.override.yml
+.env.local
+
+# Ignore backup files
+*.sql.backup
+*.dump
+backup_*.sql
+
+# Ignore temporary files
+.DS_Store
+Thumbs.db

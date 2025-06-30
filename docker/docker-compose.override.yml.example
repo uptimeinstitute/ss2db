@@ -1,0 +1,64 @@
+# Example override file for local development customizations
+# Copy this to docker-compose.override.yml and modify as needed
+
+version: '3.8'
+
+services:
+  postgres:
+    # Use different port if 5432 is occupied
+    ports:
+      - "15432:5432"
+    # Mount local directory for easier data access
+    # volumes:
+    #   - ./data/postgres:/var/lib/postgresql/data
+    # Environment overrides
+    # environment:
+    #   POSTGRES_PASSWORD: my_custom_password
+
+  mysql:
+    # Use different port if 3306 is occupied  
+    ports:
+      - "13306:3306"
+    # Mount local directory for easier data access
+    # volumes:
+    #   - ./data/mysql:/var/lib/mysql
+    # Environment overrides
+    # environment:
+    #   MYSQL_PASSWORD: my_custom_password
+
+  adminer:
+    # Use different port if 8080 is occupied
+    ports:
+      - "18080:8080"
+    # Add custom adminer plugins
+    # environment:
+    #   ADMINER_PLUGINS: tables-filter tinymce
+    #   ADMINER_DESIGN: pepa-linha
+
+# Additional services for development
+  # Add pgAdmin for PostgreSQL management
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   container_name: ss2db-pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@example.com
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "8081:80"
+  #   networks:
+  #     - ss2db-network
+
+  # Add phpMyAdmin for MySQL management
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin:latest
+  #   container_name: ss2db-phpmyadmin
+  #   environment:
+  #     PMA_HOST: mysql
+  #     PMA_USER: ss2db_user
+  #     PMA_PASSWORD: ss2db_password
+  #   ports:
+  #     - "8082:80"
+  #   networks:
+  #     - ss2db-network
+  #   depends_on:
+  #     - mysql

@@ -1,0 +1,33 @@
+# MySQL configuration for ss2db testing
+
+[mysqld]
+# Character set and collation
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# Enable JSON data type (MySQL 5.7+)
+default-authentication-plugin = mysql_native_password
+
+# Performance settings
+innodb_buffer_pool_size = 256M
+innodb_log_file_size = 64M
+max_connections = 200
+
+# Enable binary logging for replication (optional)
+# log-bin = mysql-bin
+# binlog-format = ROW
+
+# Security settings
+local-infile = 0
+
+# Timezone
+default-time-zone = '+00:00'
+
+# SQL Mode for strict compliance
+sql_mode = STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO
+
+[mysql]
+default-character-set = utf8mb4
+
+[client]
+default-character-set = utf8mb4
