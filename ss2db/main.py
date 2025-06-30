@@ -14,6 +14,7 @@ from ss2db.utils.files import get_file_manager, get_output_manager
 from ss2db.smartsheet.client import SmartsheetClient, SmartsheetAPIError
 from ss2db.smartsheet.extractors import SheetExtractor, ReportExtractor, DataExporter
 from ss2db.database.postgresql import generate_postgresql_script
+from ss2db.database.mysql import generate_mysql_script
 
 
 @click.command()
@@ -351,9 +352,22 @@ def execute_phases(
                     logger.info(f"  Generation time: {result['elapsed_time']:.2f}s")
                     
                 elif app_config.database.type == "mysql":
-                    # TODO: Implement MySQL script generation
-                    logger.warning("MySQL script generation not yet implemented")
-                    return False
+                    # Generate MySQL script
+                    mysql_config = app_config.database.mysql.dict() if app_config.database.mysql else {}
+                    
+                    result = generate_mysql_script(
+                        data_file=data_file,
+                        schema_file=schema_file,
+                        output_file=sql_file,
+                        config=mysql_config,
+                        table_name=table_name
+                    )
+                    
+                    logger.info(f"✓ MySQL script generated: {sql_file}")
+                    logger.info(f"  File size: {result['file_size']:,} bytes")
+                    logger.info(f"  Lines: {result['lines']:,}")
+                    logger.info(f"  INSERT statements: {result['insert_statements']}")
+                    logger.info(f"  Generation time: {result['elapsed_time']:.2f}s")
                 else:
                     logger.error(f"Unsupported database type: {app_config.database.type}")
                     return False

@@ -280,6 +280,38 @@ class SmartsheetSchema:
             source_type="report"
         )
     
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'SmartsheetSchema':
+        """Create schema from dictionary (e.g., loaded from JSON)."""
+        columns = []
+        for col_data in data.get('columns', []):
+            # Create SmartsheetColumn from dict data
+            column = SmartsheetColumn(
+                id=col_data['id'],
+                title=col_data['title'],
+                type=col_data['type'],
+                index=col_data['index'],
+                primary=col_data.get('primary', False),
+                hidden=col_data.get('hidden', False),
+                width=col_data.get('width'),
+                format=col_data.get('format'),
+                options=col_data.get('options'),
+                symbol=col_data.get('symbol'),
+                system_column_type=col_data.get('system_column_type')
+            )
+            columns.append(column)
+        
+        return cls(
+            id=data['id'],
+            name=data['name'],
+            columns=columns,
+            total_row_count=data.get('total_row_count'),
+            created_at=cls._parse_datetime(data.get('created_at')),
+            modified_at=cls._parse_datetime(data.get('modified_at')),
+            permalink=data.get('permalink'),
+            source_type=data.get('source_type', 'sheet')
+        )
+    
     @staticmethod
     def _parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
         """Parse datetime string from API response."""

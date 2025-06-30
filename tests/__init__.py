@@ -1,0 +1,1 @@
+"""Test suite for ss2db."""

@@ -79,6 +79,12 @@ POSTGRES_PORT=5432
 POSTGRES_DB=your_database
 POSTGRES_USER=your_username
 POSTGRES_PASSWORD=your_password
+
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DB=your_database
+MYSQL_USER=your_username
+MYSQL_PASSWORD=your_password
 ```
 
 ### Configuration File (config.yaml)
@@ -103,6 +109,18 @@ postgresql:
   table_prefix: "smartsheet_"
   create_indexes: true
   include_metadata_columns: true
+  batch_size: 1000
+
+# MySQL Configuration  
+mysql:
+  schema_name: "smartsheet"
+  table_prefix: "ss_"
+  create_indexes: true
+  include_metadata_columns: true
+  use_json: true
+  engine: "InnoDB" 
+  charset: "utf8mb4"
+  collation: "utf8mb4_unicode_ci"
   batch_size: 1000
 
 # Processing Options
@@ -177,6 +195,7 @@ ss2db --sheet-id 1234567890 --dry-run --verbose --db-type postgresql
 ### Connection Testing
 - Test Smartsheet API connectivity
 - Validate PostgreSQL connection parameters
+- Validate MySQL connection parameters
 - Check permissions and access rights
 - Verify target database exists
 
@@ -271,18 +290,20 @@ curl - H "Authorization: Bearer YOUR_TOKEN" \
 ### MySQL Data Type Mapping
 
 | Smartsheet Type | MySQL Type | Notes |
-|----------------- | ----------- | -------|
+|----------------- | ------------- | -------|
 | `TEXT_NUMBER` | `TEXT` | Handles both text and numeric values |
-| `CHECKBOX` | `BOOLEAN` / `TINYINT(1)` | MySQL boolean equivalent |
-| `CONTACT_LIST` | `JSON` | Stores `{email, displayValue}` object (MySQL 5.7+) |
+| `CHECKBOX` | `BOOLEAN` | Direct mapping for true/false |
+| `CONTACT_LIST` | `JSON` | Stores `{email, displayValue}` object |
 | `DATE` | `DATE` | ISO format YYYY-MM-DD |
-| `DATETIME` | `DATETIME` | UTC timestamps |
-| `ABSTRACT_DATETIME` | `TIMESTAMP` | System datetime with auto-update |
-| `DURATION` | `TIME` | Time interval representation |
+| `DATETIME` | `DATETIME` | Local datetime without timezone |
+| `ABSTRACT_DATETIME` | `TIMESTAMP` | System timestamp with automatic updates |
+| `DURATION` | `TIME` | Time format HH:MM:SS |
 | `MULTI_CONTACT_LIST` | `JSON` | Array of contact objects |
 | `PICKLIST` | `VARCHAR(255)` | Single dropdown selection |
 | `MULTI_PICKLIST` | `JSON` | Array of selected values |
 | `PREDECESSOR` | `JSON` | Complex dependency relationships |
+| `SYMBOL` | `VARCHAR(50)` | Icon/symbol references |
+| `ATTACHMENT` | `JSON` | File attachment metadata |
 
 # Implementation Strategy
 
