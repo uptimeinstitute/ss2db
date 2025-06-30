@@ -1,6 +1,8 @@
 # ss2db - Smartsheet to Database Export Tool
 
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/uptimeinstitute/ss2db/releases)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Production Ready](https://img.shields.io/badge/status-production%20ready-green.svg)](https://github.com/uptimeinstitute/ss2db)
 
 A powerful command-line tool for extracting data from Smartsheet and generating database import scripts for PostgreSQL and MySQL. Designed to handle large datasets with rate limiting, pagination, and comprehensive error handling.
 

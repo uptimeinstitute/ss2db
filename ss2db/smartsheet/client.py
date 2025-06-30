@@ -91,7 +91,7 @@ class SmartsheetClient:
         self.session.headers.update({
             'Authorization': f'Bearer {self.api_token}',
             'Content-Type': 'application/json',
-            'User-Agent': 'ss2db/0.1.0'
+            'User-Agent': 'ss2db/1.0.0'
         })
         
         # Rate limiter
