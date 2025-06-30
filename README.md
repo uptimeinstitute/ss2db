@@ -1,7 +1,6 @@
 # ss2db - Smartsheet to Database Export Tool
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A powerful command-line tool for extracting data from Smartsheet and generating database import scripts for PostgreSQL and MySQL. Designed to handle large datasets with rate limiting, pagination, and comprehensive error handling.
 
@@ -33,10 +32,24 @@ cd ss2db
 
 # Install in development mode
 pip install -e .
-
-# Or install dependencies directly
-pip install -r requirements.txt
 ```
+
+### Running the Application
+
+After installation, you can run ss2db in several ways:
+
+```bash
+# Method 1: Using the installed command (recommended)
+ss2db --help
+
+# Method 2: As a Python module
+python -m ss2db --help
+
+# Method 3: Direct execution (development only)
+python ss2db/main.py --help
+```
+
+**Note**: If you get "command not found" errors, ensure you have installed the package with `pip install -e .` or use the module method: `python -m ss2db`.
 
 ## Quick Start
 
@@ -155,14 +168,14 @@ output:
 # Database settings
 database:
   type: "postgresql"  # or "mysql"
-  
+
   postgresql:
     schema_name: "public"
     table_prefix: "smartsheet_"
     create_indexes: true
     include_metadata_columns: true
     use_jsonb: true
-  
+
   mysql:
     database_name: null
     table_prefix: "smartsheet_"
@@ -294,7 +307,7 @@ ss2db --report-id 5001829600415620 \
 # Output:
 # [INFO] Starting ss2db export (report=5001829600415620, postgresql)
 # [INFO] ✓ Smartsheet API connection verified
-# [INFO] Schema extracted: 42 columns, 93443 rows  
+# [INFO] Schema extracted: 42 columns, 93443 rows
 # [INFO] Extracting data: 93443 rows, 42 columns
 # [INFO] Progress: 10000/93443 rows (10.7%)
 # [INFO] Progress: 20000/93443 rows (21.4%)
@@ -390,7 +403,7 @@ cd docker && docker compose up -d
 # Test PostgreSQL connection
 ss2db --report-id 1234567890 --db-type postgresql --dry-run
 
-# Test MySQL connection  
+# Test MySQL connection
 ss2db --report-id 1234567890 --db-type mysql --dry-run
 
 # View databases via Adminer
