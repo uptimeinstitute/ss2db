@@ -13,6 +13,7 @@ from ss2db.utils.logging import get_logger, log_operation_complete, log_operatio
 from ss2db.utils.files import get_file_manager, get_output_manager
 from ss2db.smartsheet.client import SmartsheetClient, SmartsheetAPIError
 from ss2db.smartsheet.extractors import SheetExtractor, ReportExtractor, DataExporter
+from ss2db.database.postgresql import generate_postgresql_script
 
 
 @click.command()
@@ -330,9 +331,36 @@ def execute_phases(
             if table_name:
                 logger.info(f"  Table name: {table_name}")
         else:
-            # TODO: Implement SQL generation
-            logger.warning("SQL generation not yet implemented")
-            return False
+            try:
+                if app_config.database.type == "postgresql":
+                    # Generate PostgreSQL script
+                    postgres_config = app_config.database.postgresql.dict() if app_config.database.postgresql else {}
+                    
+                    result = generate_postgresql_script(
+                        data_file=data_file,
+                        schema_file=schema_file,
+                        output_file=sql_file,
+                        config=postgres_config,
+                        table_name=table_name
+                    )
+                    
+                    logger.info(f"✓ PostgreSQL script generated: {sql_file}")
+                    logger.info(f"  File size: {result['file_size']:,} bytes")
+                    logger.info(f"  Lines: {result['lines']:,}")
+                    logger.info(f"  INSERT statements: {result['insert_statements']}")
+                    logger.info(f"  Generation time: {result['elapsed_time']:.2f}s")
+                    
+                elif app_config.database.type == "mysql":
+                    # TODO: Implement MySQL script generation
+                    logger.warning("MySQL script generation not yet implemented")
+                    return False
+                else:
+                    logger.error(f"Unsupported database type: {app_config.database.type}")
+                    return False
+                    
+            except Exception as e:
+                logger.error(f"Failed to generate {db_name} script: {e}")
+                return False
     else:
         logger.info("Skipping SQL generation phase")
     

@@ -44,8 +44,10 @@ class SmartsheetColumn:
     @classmethod
     def from_api_response(cls, data: Dict[str, Any]) -> 'SmartsheetColumn':
         """Create SmartsheetColumn from API response data."""
-        # Reports use 'virtualId', sheets use 'id'
-        column_id = data.get('id') or data.get('virtualId')
+        # For reports: use virtualId (this is what cells reference)
+        # For sheets: use id (this is what cells reference)
+        # Reports have virtualId, sheets have id
+        column_id = data.get('virtualId') or data.get('id')
         if column_id is None:
             raise ValueError("Column data missing both 'id' and 'virtualId' fields")
         
@@ -117,8 +119,10 @@ class SmartsheetCell:
     @classmethod
     def from_api_response(cls, data: Dict[str, Any]) -> 'SmartsheetCell':
         """Create SmartsheetCell from API response data."""
-        # Reports use 'virtualColumnId', sheets use 'columnId'
-        column_id = data.get('columnId') or data.get('virtualColumnId')
+        # For reports: use virtualColumnId (matches report column schema)
+        # For sheets: use columnId (matches sheet column schema)
+        # Reports have both, but virtualColumnId is what matches the report column definitions
+        column_id = data.get('virtualColumnId') or data.get('columnId')
         if column_id is None:
             raise ValueError("Cell data missing both 'columnId' and 'virtualColumnId' fields")
         

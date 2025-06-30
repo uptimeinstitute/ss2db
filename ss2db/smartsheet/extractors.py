@@ -371,21 +371,17 @@ class DataExporter:
             f.write(f'  "metadata": {json.dumps(schema.to_dict(), indent=4)},\n')
             f.write('  "rows": [\n')
             
-            first_chunk = True
+            first_row = True
             
             for chunk in rows_generator:
-                if not first_chunk:
-                    f.write(',\n')
-                
-                for i, row in enumerate(chunk):
-                    if not first_chunk or i > 0:
+                for row in chunk:
+                    if not first_row:
                         f.write(',\n')
                     
                     row_dict = row.to_dict(schema.columns)
                     f.write('    ' + json.dumps(row_dict, ensure_ascii=False, default=str))
                     total_rows += 1
-                
-                first_chunk = False
+                    first_row = False
                 
                 # Log progress periodically
                 if total_rows % 10000 == 0:
