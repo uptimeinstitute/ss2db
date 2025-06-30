@@ -24,26 +24,23 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
 
 ## 🚀 Release Roadmap
 
-### Version 1.1.0 - Foundation Improvements (Q1 2025)
+### Version 1.1.0 - Foundation Improvements
 **Focus**: Stability, Testing, and User Experience
 
 #### High Priority Issues (GitHub Issues Created)
 - [ ] **Improve CLI Test Coverage** ([#1](https://github.com/uptimeinstitute/ss2db/issues/1))
   - Achieve >80% test coverage for main CLI components
   - Target: >70% overall project coverage
-  - Timeline: 3-4 weeks
 
 - [ ] **Configuration Validation** ([#2](https://github.com/uptimeinstitute/ss2db/issues/2))
   - Comprehensive validation of all configuration parameters
   - User-friendly error messages with actionable suggestions
   - `--validate-config` command for testing
-  - Timeline: 2-3 weeks
 
 - [ ] **Incremental Data Updates** ([#3](https://github.com/uptimeinstitute/ss2db/issues/3))
   - UPSERT capability for efficient data synchronization
   - Change detection and delta exports
   - Metadata tracking for extraction history
-  - Timeline: 4-5 weeks
 
 #### Success Criteria for v1.1.0
 - Overall test coverage >70%
@@ -52,7 +49,7 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
 
 ---
 
-### Version 1.2.0 - Reliability and Recovery (Q2 2025)
+### Version 1.2.0 - Reliability and Recovery
 **Focus**: Production Readiness and Error Recovery
 
 #### Medium Priority Features
@@ -62,26 +59,22 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
   - Save extraction progress at regular intervals
   - Resume failed extractions from last successful checkpoint
   - Handle network interruptions gracefully
-  - Timeline: 3-4 weeks
 
 - **Memory Optimization for Large Datasets**
   - Streaming data processing to handle >50k row datasets
   - Configurable memory limits and batch processing
   - Progress indicators with ETA for long operations
-  - Timeline: 2-3 weeks
 
 - **Enhanced Date/Time Handling**
   - Robust parsing of all Smartsheet date formats
   - Timezone awareness and conversion options
   - Better validation with detailed error reporting
-  - Timeline: 1-2 weeks
 
 ##### Schema Evolution Support
 - **Schema Change Management**
   - Detect changes in Smartsheet column structure
   - Generate migration scripts for existing tables
   - Backward compatibility validation
-  - Timeline: 3-4 weeks
 
 #### Success Criteria for v1.2.0
 - Handle datasets >50k rows without memory issues
@@ -90,7 +83,7 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
 
 ---
 
-### Version 1.3.0 - Performance and Scale (Q3 2025)
+### Version 1.3.0 - Performance and Scale
 **Focus**: Performance Optimization and Advanced Features
 
 #### Performance Optimizations
@@ -98,26 +91,22 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
   - Parallel API requests for faster data fetching
   - Async data processing pipeline
   - Connection pooling for database operations
-  - Timeline: 4-5 weeks
 
 - **Advanced Output Formats**
   - CSV export option for analytics tools
   - Parquet format for big data workflows
   - Compressed output options (gzip, zip)
-  - Timeline: 2-3 weeks
 
 - **Smart Filtering and Selection**
   - Row-level filtering during extraction
   - Column selection/exclusion capabilities
   - Date range filtering for targeted exports
-  - Timeline: 3-4 weeks
 
 #### Advanced Data Features
 - **Data Validation and Quality**
   - Configurable data quality checks
   - Custom field transformations via plugins
   - Data profiling and summary reports
-  - Timeline: 3-4 weeks
 
 #### Success Criteria for v1.3.0
 - 5x improvement in processing speed for large datasets
@@ -126,7 +115,7 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
 
 ---
 
-### Version 1.4.0 - Enterprise Features (Q4 2025)
+### Version 1.4.0 - Enterprise Features
 **Focus**: Enterprise Integration and Advanced Capabilities
 
 #### Production Readiness
@@ -135,27 +124,23 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
   - Metrics collection and monitoring hooks
   - Performance tracking and optimization insights
   - Integration with common monitoring tools
-  - Timeline: 3-4 weeks
 
 - **Security Hardening**
   - Secure credential storage (key vault integration)
   - Enhanced input validation and sanitization
   - Security audit and penetration testing
   - Compliance documentation
-  - Timeline: 4-5 weeks
 
 #### Enterprise Integration
 - **Direct Database Loading**
   - Skip SQL generation and load directly into databases
   - Bulk loading optimizations for PostgreSQL and MySQL
   - Transaction management and rollback capabilities
-  - Timeline: 4-5 weeks
 
 - **Advanced Configuration Management**
   - Environment-specific configuration profiles
   - Configuration templates and examples
   - Integration with configuration management tools
-  - Timeline: 2-3 weeks
 
 #### Success Criteria for v1.4.0
 - Production-ready security and monitoring
@@ -164,7 +149,7 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
 
 ---
 
-### Version 2.0.0 - Next Generation Architecture (Q1 2026)
+### Version 2.0.0 - Next Generation Architecture
 **Focus**: Advanced Integration and Platform Evolution
 
 #### Documentation and User Experience
@@ -173,13 +158,11 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
   - API documentation for developers
   - Troubleshooting and FAQ sections
   - Video tutorials and getting started guide
-  - Timeline: 4-5 weeks
 
 - **Advanced CLI Features**
   - Interactive configuration wizard
   - Progress bars and status indicators
   - Command completion and help system
-  - Timeline: 2-3 weeks
 
 #### CI/CD and Release Management
 - **Automated Testing and Deployment**
@@ -187,7 +170,6 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
   - Integration tests with real Smartsheet/database connections
   - Automated releases and packaging
   - Performance regression testing
-  - Timeline: 3-4 weeks
 
 #### Long-term Support Features
 - **Maintenance and Updates**
@@ -195,7 +177,6 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
   - Security vulnerability scanning
   - Long-term support version planning
   - Community contribution guidelines
-  - Timeline: 2-3 weeks
 
 #### Success Criteria for v2.0.0
 - Complete platform overhaul with modern architecture
@@ -280,4 +261,4 @@ This roadmap outlines the planned development priorities for the ss2db (Smartshe
 
 ---
 
-*This roadmap is a living document and will be updated based on community feedback, technical discoveries, and changing requirements. Last updated: December 2024*
+*This roadmap is a living document and will be updated based on community feedback, technical discoveries, and changing requirements. Last updated: June 2025*
