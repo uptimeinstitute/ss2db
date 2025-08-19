@@ -527,6 +527,6 @@ See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
 See [ROADMAP.md](ROADMAP.md) for detailed development roadmap including:
 - 📈 Enhanced testing and configuration validation (v1.1.0)
-- 🔄 Incremental sync and error recovery features (v1.2.0)  
+- 🔄 Incremental sync and error recovery features (v1.2.0)
 - 🚀 Performance optimizations and advanced features (v1.3.0)
 - 🏢 Enterprise integration capabilities (v1.4.0)
