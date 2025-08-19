@@ -1,6 +1,6 @@
 # ss2db - Smartsheet to Database Export Tool
 
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/uptimeinstitute/ss2db/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/uptimeinstitute/ss2db/releases)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-green.svg)](https://github.com/uptimeinstitute/ss2db)
 
@@ -22,17 +22,31 @@ A powerful command-line tool for extracting data from Smartsheet and generating 
 ### Prerequisites
 
 - Python 3.12 or higher
+- Git (for repository installation)
 - Smartsheet API token
 - PostgreSQL and/or MySQL database (for testing connections)
 
-### Install from Source
+### Production Installation
+
+```bash
+# Install directly from GitHub (recommended)
+pip install git+https://github.com/uptimeinstitute/ss2db.git
+
+# Install specific version
+pip install git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0
+```
+
+### Development Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/uptimeinstitute/ss2db.git
 cd ss2db
 
-# Install in development mode
+# Install in development mode with all dependencies
+pip install -e ".[dev]"
+
+# Or install just the package in editable mode
 pip install -e .
 ```
 
@@ -507,9 +521,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🐛 **Issues**: [GitHub Issues](https://github.com/uptimeinstitute/ss2db/issues)
 - 📖 **Documentation**: [Wiki](https://github.com/uptimeinstitute/ss2db/wiki)
 
+## Documentation
+
+- 📖 **[API Reference](API_REFERENCE.md)**: Complete API documentation with examples
+- 🛠️ **[Developer Guide](DEVELOPER_GUIDE.md)**: Architecture overview and development setup
+- 📋 **[Changelog](CHANGELOG.md)**: Complete release history and notes
+- 🗺️ **[Roadmap](ROADMAP.md)**: Future development plans
+
 ## Changelog
 
-### v1.0.0 (Current - Production Release)
+### v1.1.0 (Current Release - 2025-08-19)
+
+- 📚 **Enhanced Documentation**: Added comprehensive API reference and developer guide
+- 🔧 **Installation Improvements**: Fixed installation docs with proper git repository instructions
+- 🧹 **Project Maintenance**: Major cleanup removing 11GB+ of temporary files
+- ✨ **Developer Experience**: Detailed guides, examples, and contribution workflow
+
+### v1.0.0 (Production Release - 2025-06-30)
 
 - ✅ Complete Smartsheet API integration with rate limiting
 - ✅ Full PostgreSQL and MySQL SQL generation support
@@ -526,7 +554,7 @@ See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 ### Roadmap
 
 See [ROADMAP.md](ROADMAP.md) for detailed development roadmap including:
-- 📈 Enhanced testing and configuration validation (v1.1.0)
+- ✅ Enhanced documentation and project maintenance (v1.1.0 - completed)
 - 🔄 Incremental sync and error recovery features (v1.2.0)
 - 🚀 Performance optimizations and advanced features (v1.3.0)
 - 🏢 Enterprise integration capabilities (v1.4.0)
