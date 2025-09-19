@@ -8,6 +8,7 @@ from typing import Optional
 import click
 import yaml
 
+from ss2db import __version__
 from ss2db.config import Config, ConfigManager, load_config
 from ss2db.utils.logging import get_logger, log_operation_complete, log_operation_start, setup_logging
 from ss2db.utils.files import get_file_manager, get_output_manager
@@ -34,7 +35,7 @@ from ss2db.database.mysql import generate_mysql_script
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option("--log-file", type=click.Path(), help="Write logs to specified file")
-@click.version_option(version="0.1.0", prog_name="ss2db")
+@click.version_option(version=__version__, prog_name="ss2db")
 def main(
     sheet_id: Optional[str],
     report_id: Optional[str],

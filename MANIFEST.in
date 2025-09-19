@@ -1,0 +1,27 @@
+# Include the README and license files
+include README.md
+include LICENSE
+include CHANGELOG.md
+
+# Include configuration examples
+include config.yaml.example
+include .env.example
+
+# Include documentation files
+include API_REFERENCE.md
+include DEVELOPER_GUIDE.md
+include ROADMAP.md
+
+# Include package metadata
+include pyproject.toml
+
+# Exclude development and build artifacts
+exclude .gitignore
+exclude runupdate.sh
+exclude config.yaml
+exclude .env
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude .DS_Store
+global-exclude *.egg-info

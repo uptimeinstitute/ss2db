@@ -8,7 +8,7 @@ version = "1.1.0"
 description = "Smartsheet to database export tool (PostgreSQL and MySQL)"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Kevin Jarnot", email = "kevin@example.com"},
 ]
@@ -16,7 +16,6 @@ keywords = ["smartsheet", "postgresql", "mysql", "data-export", "etl"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",

@@ -1,0 +1,14 @@
+# Core dependencies for ss2db package
+# Generated from pyproject.toml for pip compatibility
+
+requests>=2.31.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+click>=8.1.0
+psycopg2-binary>=2.9.0
+mysql-connector-python>=8.0.0
+pymysql>=1.1.0
+pydantic>=2.4.0
+rich>=13.0.0
+tqdm>=4.66.0
+sqlparse>=0.4.0

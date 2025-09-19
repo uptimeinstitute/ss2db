@@ -22,14 +22,31 @@ A powerful command-line tool for extracting data from Smartsheet and generating 
 ### Prerequisites
 
 - Python 3.12 or higher
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (recommended) or pip
 - Git (for repository installation)
 - Smartsheet API token
 - PostgreSQL and/or MySQL database (for testing connections)
 
 ### Production Installation
 
+**With uv (recommended):**
 ```bash
-# Install directly from GitHub (recommended)
+# Install directly from GitHub (preferred method)
+uv pip install git+https://github.com/uptimeinstitute/ss2db.git
+
+# Install specific version
+uv pip install git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0
+
+# Add to your project dependencies in pyproject.toml
+[project]
+dependencies = [
+    "ss2db @ git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0"
+]
+```
+
+**With pip:**
+```bash
+# Install directly from GitHub
 pip install git+https://github.com/uptimeinstitute/ss2db.git
 
 # Install specific version
@@ -38,6 +55,25 @@ pip install git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0
 
 ### Development Installation
 
+**With uv (recommended):**
+```bash
+# Clone the repository
+git clone https://github.com/uptimeinstitute/ss2db.git
+cd ss2db
+
+# Install in development mode with all dependencies
+uv pip install -e ".[dev]"
+
+# Or install just the package in editable mode
+uv pip install -e .
+
+# Create isolated environment for development
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e ".[dev]"
+```
+
+**With pip:**
 ```bash
 # Clone the repository
 git clone https://github.com/uptimeinstitute/ss2db.git
@@ -65,7 +101,62 @@ python -m ss2db --help
 python ss2db/main.py --help
 ```
 
-**Note**: If you get "command not found" errors, ensure you have installed the package with `pip install -e .` or use the module method: `python -m ss2db`.
+**Note**: If you get "command not found" errors, ensure you have installed the package with `uv pip install -e .` or `pip install -e .`, or use the module method: `python -m ss2db`.
+
+### uv Project Integration
+
+For projects using uv, you can integrate ss2db seamlessly:
+
+**In your pyproject.toml:**
+```toml
+[project]
+dependencies = [
+    "ss2db @ git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0"
+]
+
+[project.optional-dependencies]
+etl = [
+    "ss2db @ git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0",
+    "pandas>=2.0.0",
+    "sqlalchemy>=2.0.0",
+]
+```
+
+**Running in uv projects:**
+```bash
+# Install project with ss2db dependency
+uv sync
+
+# Run ss2db directly
+uv run ss2db --help
+
+# Run as part of a script
+uv run python your_etl_script.py
+
+# Run with specific Python version
+uv run --python 3.12 ss2db --report-id 123456
+```
+
+**In scripts using uv:**
+```bash
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = [
+#   "ss2db @ git+https://github.com/uptimeinstitute/ss2db.git@v1.1.0"
+# ]
+# ///
+
+import subprocess
+import sys
+
+# Run ss2db extraction
+result = subprocess.run([
+    sys.executable, "-m", "ss2db",
+    "--report-id", "1234567890",
+    "--db-type", "postgresql",
+    "--output-dir", "./data"
+], check=True)
+```
 
 ## Quick Start
 
@@ -396,6 +487,26 @@ ss2db/
 
 ### Running Tests
 
+**With uv (recommended):**
+```bash
+# Install development dependencies
+uv pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run with coverage
+pytest --cov=ss2db
+
+# Run specific test
+pytest tests/test_client.py::test_rate_limiting
+
+# In isolated environment
+uv run pytest
+uv run pytest --cov=ss2db
+```
+
+**With pip:**
 ```bash
 # Install development dependencies
 pip install -e ".[dev]"
@@ -530,14 +641,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.1.0 (Current Release - 2025-08-19)
+### v1.1.0 (Current Release - 2025-09-20)
 
+- 📦 **Package Management**: Full uv support with native installation and project integration
 - 📚 **Enhanced Documentation**: Added comprehensive API reference and developer guide
 - 🔧 **Installation Improvements**: Fixed installation docs with proper git repository instructions
 - 🧹 **Project Maintenance**: Major cleanup removing 11GB+ of temporary files
 - ✨ **Developer Experience**: Detailed guides, examples, and contribution workflow
+- 🎯 **Type Hints**: Added py.typed file for better IDE support and static type checking
+- 🔧 **Build System**: Modernized package configuration with MANIFEST.in and requirements.txt compatibility
 
-### v1.0.0 (Production Release - 2025-06-30)
+### v1.0.0 (Production Release - 2024-12-30)
 
 - ✅ Complete Smartsheet API integration with rate limiting
 - ✅ Full PostgreSQL and MySQL SQL generation support

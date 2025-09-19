@@ -5,7 +5,7 @@ All notable changes to the ss2db project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2025-08-19
+## [1.1.0] - 2025-09-20
 
 ### 🚀 Enhanced Documentation & Maintenance Release
 
@@ -13,24 +13,34 @@ This release significantly improves the developer experience with comprehensive 
 
 ### ✨ Added
 
+#### Package Management
+- **uv Support**: Full native support for uv package manager with comprehensive integration examples
+- **Type Hints**: Added py.typed file for better IDE support and static type checking
+- **MANIFEST.in**: Proper inclusion of non-Python files in package distribution
+- **requirements.txt**: Backward compatibility files for traditional pip workflows
+- **Project Integration**: Complete examples for using ss2db in uv-managed projects
+
 #### Documentation
 - **DEVELOPER_GUIDE.md**: Complete developer documentation with architecture overview, development setup instructions, and contribution guidelines
 - **API_REFERENCE.md**: Comprehensive API documentation covering all modules, classes, and methods with detailed examples
 - **Installation Documentation**: Proper git repository installation instructions replacing incorrect PyPI references
+- **uv Integration Guide**: Comprehensive examples for uv project integration, inline scripts, and isolated environments
 - **Code Examples**: Memory-efficient processing examples, error handling patterns, and pagination examples
 - **Extension Guide**: Detailed guide for adding support for new database types
 
 #### Developer Experience
 - **Testing Strategy**: Complete testing documentation and best practices
-- **Performance Guidelines**: Optimization tips and memory management strategies  
+- **Performance Guidelines**: Optimization tips and memory management strategies
 - **Security Best Practices**: Security guidelines and vulnerability prevention
 - **Contribution Workflow**: Clear guidelines for contributing to the project
 
 ### 🔧 Fixed
 - **Installation Instructions**: Corrected installation documentation to show proper git repository installation methods
+- **Version Consistency**: Fixed version mismatches across __init__.py, main.py, and CLI to all show 1.1.0
+- **License Configuration**: Updated pyproject.toml to use modern SPDX license format and removed deprecated warnings
+- **Build System**: Modernized package configuration for cleaner wheel and source distribution builds
 - **Pagination Example**: Fixed API documentation pagination example to properly calculate total pages
 - **Project Structure**: Cleaned up 11GB+ of temporary files and test exports
-- **Version Consistency**: Updated all version references to reflect current release
 
 ### 🧹 Maintenance
 - **Project Cleanup**: Removed Python cache files, empty directories, and test export data
@@ -43,7 +53,7 @@ This release significantly improves the developer experience with comprehensive 
 - **Troubleshooting**: Expanded troubleshooting section with common issues and solutions
 - **Performance Benchmarks**: Updated performance metrics and optimization recommendations
 
-## [1.0.0] - 2025-06-30
+## [1.0.0] - 2024-12-30
 
 ### 🎉 Initial Production Release
 
