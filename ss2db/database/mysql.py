@@ -283,7 +283,7 @@ class MySQLGenerator:
             if column.hidden:
                 continue
                 
-            col_name = self.sanitize_identifier(column.title)
+            col_name = self.sanitize_identifier(column.get_effective_title())
             col_type = self.convert_column_type(column)
             
             col_def = f"    {self.quote_identifier(col_name)} {col_type}"
@@ -323,7 +323,7 @@ class MySQLGenerator:
         # Index on primary column
         primary_column = schema.get_primary_column()
         if primary_column and not primary_column.hidden:
-            col_name = self.sanitize_identifier(primary_column.title)
+            col_name = self.sanitize_identifier(primary_column.get_effective_title())
             lines.append(f"CREATE INDEX idx_{table_name}_{col_name} ON {full_table_name} ({self.quote_identifier(col_name)});")
         
         # Indexes on JSON columns for common queries (MySQL 5.7+)
@@ -333,7 +333,7 @@ class MySQLGenerator:
                     continue
                     
                 if column.type in [ColumnType.CONTACT_LIST, ColumnType.MULTI_CONTACT_LIST]:
-                    col_name = self.sanitize_identifier(column.title)
+                    col_name = self.sanitize_identifier(column.get_effective_title())
                     # MySQL JSON functional indexes (MySQL 8.0+)
                     lines.append(f"-- Note: JSON functional indexes require MySQL 8.0+")
                     lines.append(f"-- CREATE INDEX idx_{table_name}_{col_name}_email ON {full_table_name} ((CAST({self.quote_identifier(col_name)}->'$.email' AS CHAR(255))));")
@@ -363,7 +363,7 @@ class MySQLGenerator:
         # Add data columns (non-hidden only)
         for column in schema.columns:
             if not column.hidden:
-                col_name = self.sanitize_identifier(column.title)
+                col_name = self.sanitize_identifier(column.get_effective_title())
                 columns.append(self.quote_identifier(col_name))
         
         # Build INSERT statement
@@ -428,7 +428,7 @@ class MySQLGenerator:
         # Add data columns (non-hidden only)
         for column in schema.columns:
             if not column.hidden:
-                col_name = self.sanitize_identifier(column.title)
+                col_name = self.sanitize_identifier(column.get_effective_title())
                 columns.append(self.quote_identifier(col_name))
         
         # Build INSERT statement
@@ -454,7 +454,7 @@ class MySQLGenerator:
                 if column.hidden:
                     continue
                     
-                value = row_data.get(column.title)
+                value = row_data.get(column.get_effective_title())
                 values.append(self.convert_value(value, column))
             
             value_rows.append(f"    ({', '.join(values)})")
