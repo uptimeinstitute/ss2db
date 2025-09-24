@@ -28,7 +28,7 @@ class ColumnType(str, Enum):
 @dataclass
 class SmartsheetColumn:
     """Represents a Smartsheet column with metadata."""
-    
+
     id: int
     title: str
     type: str
@@ -40,6 +40,7 @@ class SmartsheetColumn:
     options: Optional[List[str]] = field(default_factory=list)
     symbol: Optional[str] = None
     system_column_type: Optional[str] = None
+    unique_title: Optional[str] = None  # For handling duplicate column names
     
     @classmethod
     def from_api_response(cls, data: Dict[str, Any]) -> 'SmartsheetColumn':
@@ -64,6 +65,10 @@ class SmartsheetColumn:
             symbol=data.get('symbol'),
             system_column_type=data.get('systemColumnType')
         )
+
+    def get_effective_title(self) -> str:
+        """Get the effective title to use for SQL generation (unique_title if set, otherwise title)."""
+        return self.unique_title if self.unique_title else self.title
     
     def get_postgres_type(self) -> str:
         """Get the corresponding PostgreSQL data type."""
@@ -227,10 +232,11 @@ class SmartsheetRow:
         # Add cell values
         for column in columns:
             cell = self.get_cell_by_column_id(column.id)
+            effective_title = column.get_effective_title()
             if cell:
-                result[column.title] = cell.get_transformed_value(column)
+                result[effective_title] = cell.get_transformed_value(column)
             else:
-                result[column.title] = None
+                result[effective_title] = None
         
         return result
 
@@ -252,8 +258,8 @@ class SmartsheetSchema:
     def from_sheet_response(cls, data: Dict[str, Any]) -> 'SmartsheetSchema':
         """Create schema from sheet API response."""
         columns = [SmartsheetColumn.from_api_response(col) for col in data.get('columns', [])]
-        
-        return cls(
+
+        schema = cls(
             id=data['id'],
             name=data['name'],
             columns=columns,
@@ -263,13 +269,18 @@ class SmartsheetSchema:
             permalink=data.get('permalink'),
             source_type="sheet"
         )
+
+        # Generate unique column names for duplicates
+        schema.generate_unique_column_names()
+
+        return schema
     
     @classmethod
     def from_report_response(cls, data: Dict[str, Any]) -> 'SmartsheetSchema':
         """Create schema from report API response."""
         columns = [SmartsheetColumn.from_api_response(col) for col in data.get('columns', [])]
-        
-        return cls(
+
+        schema = cls(
             id=data['id'],
             name=data['name'],
             columns=columns,
@@ -279,6 +290,11 @@ class SmartsheetSchema:
             permalink=data.get('permalink'),
             source_type="report"
         )
+
+        # Generate unique column names for duplicates
+        schema.generate_unique_column_names()
+
+        return schema
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'SmartsheetSchema':
@@ -297,7 +313,8 @@ class SmartsheetSchema:
                 format=col_data.get('format'),
                 options=col_data.get('options'),
                 symbol=col_data.get('symbol'),
-                system_column_type=col_data.get('system_column_type')
+                system_column_type=col_data.get('system_column_type'),
+                unique_title=col_data.get('unique_title')
             )
             columns.append(column)
         
@@ -342,6 +359,40 @@ class SmartsheetSchema:
             if column.primary:
                 return column
         return None
+
+    def generate_unique_column_names(self) -> None:
+        """Generate unique column names for columns with duplicate titles."""
+        # Count occurrences of each column title
+        title_counts = {}
+        title_seen = {}
+
+        for column in self.columns:
+            original_title = column.title.strip() if column.title else ''
+
+            # Handle empty or whitespace-only titles
+            if not original_title:
+                original_title = 'unnamed_column'
+
+            if original_title not in title_counts:
+                title_counts[original_title] = 0
+                title_seen[original_title] = 0
+            title_counts[original_title] += 1
+
+        # Assign unique names to duplicate columns
+        for column in self.columns:
+            original_title = column.title.strip() if column.title else ''
+
+            # Handle empty or whitespace-only titles
+            if not original_title:
+                original_title = 'unnamed_column'
+
+            # If this title appears more than once, generate unique names
+            if title_counts[original_title] > 1:
+                title_seen[original_title] += 1
+                column.unique_title = f"{original_title}_{title_seen[original_title]}"
+            else:
+                # Single occurrence, no need for unique name
+                column.unique_title = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert schema to dictionary for JSON serialization."""
@@ -357,6 +408,7 @@ class SmartsheetSchema:
                 {
                     'id': col.id,
                     'title': col.title,
+                    'unique_title': col.unique_title,
                     'type': col.type,
                     'index': col.index,
                     'primary': col.primary,
