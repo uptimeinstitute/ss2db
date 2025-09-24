@@ -5,6 +5,83 @@ All notable changes to the ss2db project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-25
+
+### 🛠️ Enhanced Data Handling & Edge Case Resolution
+
+This release focuses on improving the robustness of data processing by addressing critical edge cases that could cause export failures.
+
+### ✨ Added
+
+#### Duplicate Column Handling
+- **Automatic Duplicate Detection**: System now automatically detects when Smartsheet reports have multiple columns with identical names
+- **Unique Name Generation**: Automatically generates unique column names with incrementing suffixes (e.g., `forecasted_1`, `forecasted_2`, `forecasted_3`)
+- **Metadata Preservation**: Original column names are preserved in schema metadata for reference and debugging
+- **Case-Sensitive Handling**: Duplicate detection is case-sensitive, treating "Status" and "status" as different columns
+- **Edge Case Management**: Robust handling of empty or whitespace-only column names
+
+#### Enhanced Data Models
+- **SmartsheetColumn.unique_title**: New field to store generated unique column names for duplicates
+- **SmartsheetColumn.get_effective_title()**: New method to return the appropriate column name for SQL generation
+- **SmartsheetSchema.generate_unique_column_names()**: New method to detect and resolve column name duplicates
+- **Enhanced Schema Serialization**: Updated `to_dict()` methods to include unique column name information
+
+#### Database Generator Improvements
+- **PostgreSQL Generator**: Updated to use effective column titles in CREATE TABLE, INSERT, and INDEX statements
+- **MySQL Generator**: Updated with same enhancements for consistent behavior across database types
+- **SQL Validation**: Generated SQL now always produces valid syntax even with originally duplicate column names
+- **Index Generation**: Proper index creation using unique column names for optimal database performance
+
+### 🔧 Fixed
+- **Critical Edge Case**: Resolved database creation failures when Smartsheet reports contain identically-named columns
+- **SQL Syntax Errors**: Eliminated invalid SQL generation that occurred with duplicate column names
+- **Data Mapping**: Fixed data mapping issues where duplicate column names caused data loss or corruption
+- **Export Robustness**: Enhanced export reliability for reports with complex column structures
+
+### 📊 Impact & Benefits
+- **Zero Breaking Changes**: Existing functionality remains unchanged for reports without duplicate columns
+- **Improved Reliability**: Eliminates a critical failure point in the export process
+- **Better Data Integrity**: Ensures all data is properly exported and mapped even with duplicate column names
+- **Enhanced Debugging**: Metadata preservation aids troubleshooting and data validation
+
+### 🧪 Testing Enhancements
+- **Comprehensive Test Coverage**: Added 15+ new test cases covering all duplicate column scenarios
+- **Edge Case Testing**: Tests for empty names, whitespace handling, and case sensitivity
+- **Database-Specific Tests**: Separate test suites for PostgreSQL and MySQL SQL generation
+- **End-to-End Validation**: Complete workflow testing from schema detection to SQL generation
+- **Regression Prevention**: Extensive test coverage to prevent future regressions
+
+### 📋 Example Transformation
+
+**Before (Failed):**
+```sql
+CREATE TABLE example (
+    forecasted TEXT,    -- ❌ Duplicate column name
+    forecasted TEXT,    -- ❌ SQL syntax error
+    forecasted TEXT     -- ❌ Database creation fails
+);
+```
+
+**After (Success):**
+```sql
+CREATE TABLE example (
+    forecasted_1 TEXT,  -- ✅ Valid and unique
+    forecasted_2 TEXT,  -- ✅ Valid and unique
+    forecasted_3 TEXT   -- ✅ Valid and unique
+);
+```
+
+### 🎯 Technical Details
+- **Algorithm**: Deterministic unique name generation ensures consistent results across runs
+- **Performance**: Minimal performance impact with O(n) column processing
+- **Memory Efficient**: In-place column name processing without data duplication
+- **Backward Compatible**: Zero impact on existing workflows and configurations
+
+### 🔗 Related Issues
+- Closes #4: Handle identically-named columns edge case
+- Resolves database creation failures for complex Smartsheet reports
+- Improves overall system robustness and reliability
+
 ## [1.1.0] - 2025-09-20
 
 ### 🚀 Enhanced Documentation & Maintenance Release
