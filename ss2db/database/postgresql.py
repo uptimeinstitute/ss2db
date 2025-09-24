@@ -247,16 +247,16 @@ class PostgreSQLGenerator:
         for column in schema.columns:
             if column.hidden:
                 continue
-                
-            col_name = self.sanitize_identifier(column.title)
+
+            col_name = self.sanitize_identifier(column.get_effective_title())
             col_type = self.convert_column_type(column)
-            
+
             col_def = f"    {self.quote_identifier(col_name)} {col_type}"
-            
+
             # Don't add NOT NULL constraints for Smartsheet columns
             # Even "primary" columns in Smartsheet can have NULL values in practice
             # Only our metadata columns (smartsheet_row_id) should be NOT NULL
-            
+
             column_definitions.append(col_def)
         
         lines.append(",\n".join(column_definitions))
@@ -287,19 +287,19 @@ class PostgreSQLGenerator:
         # Index on primary column
         primary_column = schema.get_primary_column()
         if primary_column and not primary_column.hidden:
-            col_name = self.sanitize_identifier(primary_column.title)
+            col_name = self.sanitize_identifier(primary_column.get_effective_title())
             lines.append(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_{col_name} ON {full_table_name} ({self.quote_identifier(col_name)});")
-        
+
         # Indexes on JSON columns for common queries
         for column in schema.columns:
             if column.hidden:
                 continue
-                
+
             if column.type in [ColumnType.CONTACT_LIST, ColumnType.MULTI_CONTACT_LIST]:
-                col_name = self.sanitize_identifier(column.title)
+                col_name = self.sanitize_identifier(column.get_effective_title())
                 # GIN index for JSON operations
                 lines.append(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_{col_name}_gin ON {full_table_name} USING GIN ({self.quote_identifier(col_name)});")
-        
+
         return "\n".join(lines)
     
     def generate_insert_sql_batch(self, rows: List[SmartsheetRow], schema: SmartsheetSchema, 
@@ -325,7 +325,7 @@ class PostgreSQLGenerator:
         # Add data columns (non-hidden only)
         for column in schema.columns:
             if not column.hidden:
-                col_name = self.sanitize_identifier(column.title)
+                col_name = self.sanitize_identifier(column.get_effective_title())
                 columns.append(self.quote_identifier(col_name))
         
         # Build INSERT statement
@@ -392,7 +392,7 @@ class PostgreSQLGenerator:
         # Add data columns (non-hidden only)
         for column in schema.columns:
             if not column.hidden:
-                col_name = self.sanitize_identifier(column.title)
+                col_name = self.sanitize_identifier(column.get_effective_title())
                 columns.append(self.quote_identifier(col_name))
         
         # Build INSERT statement
@@ -425,7 +425,7 @@ class PostgreSQLGenerator:
                 if column.hidden:
                     continue
                     
-                value = row_data.get(column.title)
+                value = row_data.get(column.get_effective_title())
                 values.append(self.convert_value(value, column))
             
             value_rows.append(f"    ({', '.join(values)})")

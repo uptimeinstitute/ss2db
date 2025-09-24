@@ -97,6 +97,84 @@ class TestMySQLGenerator:
             )
             result = self.generator.convert_column_type(column)
             assert result == expected_sql_type
+
+    def test_create_table_with_duplicate_column_names(self):
+        """Test CREATE TABLE statement generation with duplicate column names."""
+        columns = [
+            SmartsheetColumn(id=111, title='forecasted', type=ColumnType.TEXT_NUMBER, index=0, unique_title='forecasted_1'),
+            SmartsheetColumn(id=222, title='status', type=ColumnType.PICKLIST, index=1),
+            SmartsheetColumn(id=333, title='forecasted', type=ColumnType.TEXT_NUMBER, index=2, unique_title='forecasted_2')
+        ]
+
+        schema = SmartsheetSchema(
+            id=123,
+            name='Test Schema',
+            columns=columns,
+            source_type='sheet'
+        )
+
+        sql = self.generator.generate_create_table_sql(schema, 'test_table')
+
+        # Should use unique column names
+        assert '`forecasted_1` TEXT' in sql
+        assert '`forecasted_2` TEXT' in sql
+        assert '`status` VARCHAR(255)' in sql
+
+        # Should not contain the original duplicate column name
+        assert '`forecasted` TEXT' not in sql
+
+    def test_insert_sql_with_duplicate_column_names(self):
+        """Test INSERT statement generation with duplicate column names."""
+        columns = [
+            SmartsheetColumn(id=111, title='forecasted', type=ColumnType.TEXT_NUMBER, index=0, unique_title='forecasted_1'),
+            SmartsheetColumn(id=222, title='forecasted', type=ColumnType.TEXT_NUMBER, index=1, unique_title='forecasted_2')
+        ]
+
+        schema = SmartsheetSchema(
+            id=123,
+            name='Test Schema',
+            columns=columns,
+            source_type='sheet'
+        )
+
+        # Create row data using the effective column names
+        rows_data = [
+            {
+                'smartsheet_row_id': 123,
+                'smartsheet_row_number': 1,
+                'forecasted_1': 'Value 1',
+                'forecasted_2': 'Value 2'
+            }
+        ]
+
+        sql = self.generator.generate_insert_sql_batch_from_dict(rows_data, schema, 'test_table')
+
+        # Should reference unique column names
+        assert '`forecasted_1`' in sql
+        assert '`forecasted_2`' in sql
+        assert "'Value 1'" in sql
+        assert "'Value 2'" in sql
+
+    def test_indexes_with_duplicate_column_names(self):
+        """Test index generation with duplicate column names."""
+        columns = [
+            SmartsheetColumn(id=111, title='forecasted', type=ColumnType.TEXT_NUMBER, index=0,
+                           unique_title='forecasted_1', primary=True),
+            SmartsheetColumn(id=222, title='forecasted', type=ColumnType.TEXT_NUMBER, index=1,
+                           unique_title='forecasted_2')
+        ]
+
+        schema = SmartsheetSchema(
+            id=123,
+            name='Test Schema',
+            columns=columns,
+            source_type='sheet'
+        )
+
+        sql = self.generator.generate_indexes_sql(schema, 'test_table')
+
+        # Should use unique column names in index creation
+        assert 'idx_test_table_forecasted_1' in sql
     
     def test_convert_column_type_without_json(self):
         """Test column type conversion without JSON support."""
