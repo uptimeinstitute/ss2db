@@ -202,7 +202,7 @@ def execute_phases(
         if not dry_run:
             try:
                 api_token = config_manager.get_api_token()
-                smartsheet_client = SmartsheetClient(api_token, app_config.smartsheet.dict())
+                smartsheet_client = SmartsheetClient(api_token, app_config.smartsheet.model_dump())
                 
                 # Test connection
                 if not smartsheet_client.test_connection():
@@ -216,8 +216,8 @@ def execute_phases(
                 return False
     
     # Initialize file managers
-    file_manager = get_file_manager(app_config.output.dict())
-    data_exporter = DataExporter(app_config.output.dict())
+    file_manager = get_file_manager(app_config.output.model_dump())
+    data_exporter = DataExporter(app_config.output.model_dump())
     
     # Phase 1: Data Extraction
     if not skip_extraction and not input_data:
@@ -229,9 +229,9 @@ def execute_phases(
             try:
                 # Create appropriate extractor
                 if resource_type == "sheet":
-                    extractor = SheetExtractor(smartsheet_client, app_config.advanced.dict())
+                    extractor = SheetExtractor(smartsheet_client, app_config.advanced.model_dump())
                 else:  # report
-                    extractor = ReportExtractor(smartsheet_client, app_config.advanced.dict())
+                    extractor = ReportExtractor(smartsheet_client, app_config.advanced.model_dump())
                 
                 # Extract schema first (needed for data extraction)
                 logger.info("Getting schema information...")
@@ -291,9 +291,9 @@ def execute_phases(
                 try:
                     # Create appropriate extractor
                     if resource_type == "sheet":
-                        extractor = SheetExtractor(smartsheet_client, app_config.advanced.dict())
+                        extractor = SheetExtractor(smartsheet_client, app_config.advanced.model_dump())
                     else:  # report
-                        extractor = ReportExtractor(smartsheet_client, app_config.advanced.dict())
+                        extractor = ReportExtractor(smartsheet_client, app_config.advanced.model_dump())
                     
                     # Extract schema
                     schema = extractor.extract_schema(resource_id)
@@ -336,7 +336,7 @@ def execute_phases(
             try:
                 if app_config.database.type == "postgresql":
                     # Generate PostgreSQL script
-                    postgres_config = app_config.database.postgresql.dict() if app_config.database.postgresql else {}
+                    postgres_config = app_config.database.postgresql.model_dump() if app_config.database.postgresql else {}
                     
                     result = generate_postgresql_script(
                         data_file=data_file,
@@ -354,7 +354,7 @@ def execute_phases(
                     
                 elif app_config.database.type == "mysql":
                     # Generate MySQL script
-                    mysql_config = app_config.database.mysql.dict() if app_config.database.mysql else {}
+                    mysql_config = app_config.database.mysql.model_dump() if app_config.database.mysql else {}
                     
                     result = generate_mysql_script(
                         data_file=data_file,
@@ -385,7 +385,7 @@ def execute_phases(
 def save_config_snapshot(config: Config, config_file: Path, logger) -> None:
     """Save a snapshot of the current configuration."""
     try:
-        config_dict = config.dict()
+        config_dict = config.model_dump()
         with open(config_file, 'w') as f:
             yaml.dump(config_dict, f, default_flow_style=False, indent=2)
         logger.debug(f"Saved configuration snapshot: {config_file}")
