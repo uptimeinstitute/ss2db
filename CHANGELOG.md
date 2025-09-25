@@ -5,6 +5,23 @@ All notable changes to the ss2db project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-09-24
+
+### 🔧 Fixed
+- **Pydantic Deprecation Warnings**: Fixed all PydanticDeprecatedSince20 warnings by replacing deprecated `.dict()` method with `.model_dump()` throughout the codebase
+- **Complete Duplicate Column Fix**: Fixed critical PostgreSQL schema deserialization bug where `unique_title` field was lost during SQL generation
+- **Code Modernization**: Updated to use modern Pydantic V2 API, preparing for future V3 migration
+
+### 🛠️ Technical Improvements
+- **PostgreSQL Generator**: Now properly uses `SmartsheetSchema.from_dict()` for schema loading, ensuring all fields including `unique_title` are preserved
+- **Schema Preservation**: Fixed schema reconstruction process to maintain duplicate column name resolution
+- **Clean Execution**: Eliminated deprecation warnings for cleaner command-line output
+
+### 📊 Verification
+- **Real-world Testing**: Verified fix with actual Smartsheet report containing duplicate "Forecasted?" columns
+- **SQL Generation**: CREATE TABLE statements now properly generate unique column names (`forecasted_1`, `forecasted_2`)
+- **End-to-end Validation**: Complete workflow testing from schema extraction to SQL execution
+
 ## [1.2.0] - 2025-01-25
 
 ### 🛠️ Enhanced Data Handling & Edge Case Resolution
