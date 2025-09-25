@@ -446,28 +446,8 @@ class PostgreSQLGenerator:
         with open(schema_file, 'r', encoding='utf-8') as f:
             schema_data = json.load(f)
         
-        schema = SmartsheetSchema(
-            id=schema_data['id'],
-            name=schema_data['name'],
-            columns=[SmartsheetColumn(
-                id=col['id'],
-                title=col['title'],
-                type=col['type'],
-                index=col['index'],
-                primary=col['primary'],
-                hidden=col['hidden'],
-                width=col.get('width'),
-                format=col.get('format'),
-                options=col.get('options', []),
-                symbol=col.get('symbol'),
-                system_column_type=col.get('system_column_type')
-            ) for col in schema_data['columns']],
-            total_row_count=schema_data.get('total_row_count'),
-            created_at=datetime.fromisoformat(schema_data['created_at']) if schema_data.get('created_at') else None,
-            modified_at=datetime.fromisoformat(schema_data['modified_at']) if schema_data.get('modified_at') else None,
-            permalink=schema_data.get('permalink'),
-            source_type=schema_data.get('source_type', 'sheet')
-        )
+        schema = SmartsheetSchema.from_dict(schema_data)
+        self.schema = schema  # Store for access by caller
         
         # Start building SQL
         sql_parts = []

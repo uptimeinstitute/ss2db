@@ -378,6 +378,7 @@ class SmartsheetSchema:
                 title_seen[original_title] = 0
             title_counts[original_title] += 1
 
+
         # Assign unique names to duplicate columns
         for column in self.columns:
             original_title = column.title.strip() if column.title else ''
@@ -396,6 +397,7 @@ class SmartsheetSchema:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert schema to dictionary for JSON serialization."""
+
         return {
             'id': self.id,
             'name': self.name,
