@@ -4,14 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ss2db"
-version = "1.2.1"
+version = "1.2.2"
 description = "Smartsheet to database export tool (PostgreSQL and MySQL)"
 readme = "README.md"
 requires-python = ">=3.12"
-license = "MIT"
-authors = [
-    {name = "Kevin Jarnot", email = "kevin@example.com"},
-]
 keywords = ["smartsheet", "postgresql", "mysql", "data-export", "etl"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
