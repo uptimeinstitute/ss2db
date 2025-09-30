@@ -56,39 +56,32 @@ def main(
 ) -> None:
     """
     Smartsheet to database export tool.
-    
+
     Extract data from Smartsheet and generate database import scripts for PostgreSQL and MySQL.
-    
+
     Examples:
         ss2db --sheet-id 1234567890 --output-dir ./exports --db-type postgresql
         ss2db --report-id 9876543210 --verbose --db-type mysql
         ss2db --sheet-id 1234567890 --skip-extraction --input-data data.json
     """
     start_time = time.time()
-    
+
+    print(f"ss2db version {__version__}")
+
     try:
-        # Validate arguments
-        if not sheet_id and not report_id:
-            click.echo("Error: Either --sheet-id or --report-id must be specified", err=True)
-            sys.exit(1)
-        
-        if sheet_id and report_id:
-            click.echo("Error: Cannot specify both --sheet-id and --report-id", err=True)
-            sys.exit(1)
-        
         # Load configuration
         try:
             app_config, config_manager = load_config(config, env_file)
         except Exception as e:
             click.echo(f"Error loading configuration: {e}", err=True)
             sys.exit(1)
-        
+
         # Override configuration options if specified
         if output_dir:
             app_config.output.directory = output_dir
         if db_type:
             app_config.database.type = db_type
-        
+
         # Set up logging
         logger = setup_logging(
             level=app_config.logging.level,
@@ -100,31 +93,40 @@ def main(
             quiet=quiet,
             verbose=verbose
         )
-        
+
         # Log startup information
         resource_id = sheet_id or report_id
         resource_type = "sheet" if sheet_id else "report"
-        
+
+        # Validate arguments
+        if not sheet_id and not report_id:
+            click.echo("Error: Either --sheet-id or --report-id must be specified", err=True)
+            sys.exit(1)
+
+        if sheet_id and report_id:
+            click.echo("Error: Cannot specify both --sheet-id and --report-id", err=True)
+            sys.exit(1)
+
         log_operation_start(
-            logger, 
-            "ss2db export",
+            logger,
+            f"ss2db (v{__version__}) export",
             resource_type=resource_type,
             resource_id=resource_id,
             database_type=app_config.database.type,
             dry_run=dry_run
         )
-        
+
         if dry_run:
             logger.info("DRY RUN MODE - No files will be created or modified")
-            
+
         logger.info(f"Database type: {app_config.database.type}")
-        
+
         # Create output directory
         output_path = Path(app_config.output.directory)
         if not dry_run:
             output_path.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created output directory: {output_path}")
-        
+
         # Execute processing phases
         success = execute_phases(
             config_manager=config_manager,
@@ -141,7 +143,7 @@ def main(
             dry_run=dry_run,
             logger=logger
         )
-        
+
         # Log completion
         duration = time.time() - start_time
         if success:
@@ -150,7 +152,7 @@ def main(
         else:
             logger.error("Export failed")
             sys.exit(1)
-            
+
     except KeyboardInterrupt:
         logger.warning("Export interrupted by user")
         sys.exit(130)
@@ -175,27 +177,27 @@ def execute_phases(
     logger
 ) -> bool:
     """Execute the processing phases."""
-    
+
     resource_id = sheet_id or report_id
     resource_type = "sheet" if sheet_id else "report"
-    
+
     # Create output filenames
     timestamp = time.strftime(app_config.output.timestamp_format)
     output_dir = Path(app_config.output.directory) / resource_id
-    
+
     data_file = output_dir / f"{timestamp}_data.json"
     schema_file = output_dir / f"{timestamp}_schema.json"
     sql_file = output_dir / f"{timestamp}_import.sql"
     log_file = output_dir / f"{timestamp}_log.txt"
     config_file = output_dir / f"config_used.yaml"
-    
+
     if not dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Save configuration snapshot
     if not dry_run:
         save_config_snapshot(app_config, config_file, logger)
-    
+
     # Initialize Smartsheet client if needed
     smartsheet_client = None
     if not skip_extraction or not skip_schema:
@@ -203,22 +205,22 @@ def execute_phases(
             try:
                 api_token = config_manager.get_api_token()
                 smartsheet_client = SmartsheetClient(api_token, app_config.smartsheet.model_dump())
-                
+
                 # Test connection
                 if not smartsheet_client.test_connection():
                     logger.error("Failed to connect to Smartsheet API")
                     return False
-                    
+
                 logger.info("✓ Smartsheet API connection verified")
-                
+
             except Exception as e:
                 logger.error(f"Failed to initialize Smartsheet client: {e}")
                 return False
-    
+
     # Initialize file managers
     file_manager = get_file_manager(app_config.output.model_dump())
     data_exporter = DataExporter(app_config.output.model_dump())
-    
+
     # Phase 1: Data Extraction
     if not skip_extraction and not input_data:
         logger.info(f"Phase 1: Extracting {resource_type} data")
@@ -232,14 +234,14 @@ def execute_phases(
                     extractor = SheetExtractor(smartsheet_client, app_config.advanced.model_dump())
                 else:  # report
                     extractor = ReportExtractor(smartsheet_client, app_config.advanced.model_dump())
-                
+
                 # Extract schema first (needed for data extraction)
                 logger.info("Getting schema information...")
                 schema = extractor.extract_schema(resource_id)
-                
+
                 # Extract data with progress tracking
                 logger.info(f"Extracting data: {schema.total_row_count or 'unknown'} rows, {len(schema.columns)} columns")
-                
+
                 def progress_callback(progress):
                     if progress.extracted_rows % 10000 == 0:
                         percentage = progress.get_progress_percentage()
@@ -247,38 +249,38 @@ def execute_phases(
                             logger.info(f"Progress: {progress.extracted_rows}/{progress.total_rows} rows ({percentage:.1f}%)")
                         else:
                             logger.info(f"Progress: {progress.extracted_rows} rows extracted")
-                
+
                 # Extract data in chunks
                 rows_generator = extractor.extract_data(resource_id, progress_callback)
-                
+
                 # Export data to file
                 export_result = data_exporter.export_data_chunked(rows_generator, schema, data_file)
-                
+
                 logger.info(f"✓ Data extraction completed: {export_result['total_rows']} rows in {export_result['elapsed_time']:.2f}s")
                 logger.info(f"  Data file: {data_file} ({export_result['file_size']:,} bytes)")
-                
+
                 # Also export schema
                 data_exporter.export_schema(schema, schema_file)
                 logger.info(f"✓ Schema exported: {schema_file}")
-                
+
             except SmartsheetAPIError as e:
                 logger.error(f"Smartsheet API error during extraction: {e}")
                 return False
             except Exception as e:
                 logger.error(f"Unexpected error during extraction: {e}")
                 return False
-                
+
     elif input_data:
         data_file = Path(input_data)
         logger.info(f"Using existing data file: {data_file}")
-        
+
         # Validate data file exists
         if not data_file.exists():
             logger.error(f"Data file not found: {data_file}")
             return False
     else:
         logger.info("Skipping data extraction phase")
-    
+
     # Phase 2: Schema Extraction
     if not skip_schema and not input_schema:
         logger.info(f"Phase 2: Extracting {resource_type} schema")
@@ -294,12 +296,12 @@ def execute_phases(
                         extractor = SheetExtractor(smartsheet_client, app_config.advanced.model_dump())
                     else:  # report
                         extractor = ReportExtractor(smartsheet_client, app_config.advanced.model_dump())
-                    
+
                     # Extract schema
                     schema = extractor.extract_schema(resource_id)
                     data_exporter.export_schema(schema, schema_file)
                     logger.info(f"✓ Schema extracted: {len(schema.columns)} columns")
-                    
+
                 except SmartsheetAPIError as e:
                     logger.error(f"Smartsheet API error during schema extraction: {e}")
                     return False
@@ -308,18 +310,18 @@ def execute_phases(
                     return False
             else:
                 logger.info("✓ Schema already extracted with data")
-                
+
     elif input_schema:
         schema_file = Path(input_schema)
         logger.info(f"Using existing schema file: {schema_file}")
-        
+
         # Validate schema file exists
         if not schema_file.exists():
             logger.error(f"Schema file not found: {schema_file}")
             return False
     else:
         logger.info("Skipping schema extraction phase")
-    
+
     # Phase 3: SQL Generation
     if not skip_sql:
         db_name = app_config.database.type.upper()
@@ -337,7 +339,7 @@ def execute_phases(
                 if app_config.database.type == "postgresql":
                     # Generate PostgreSQL script
                     postgres_config = app_config.database.postgresql.model_dump() if app_config.database.postgresql else {}
-                    
+
                     result = generate_postgresql_script(
                         data_file=data_file,
                         schema_file=schema_file,
@@ -345,17 +347,17 @@ def execute_phases(
                         config=postgres_config,
                         table_name=table_name
                     )
-                    
+
                     logger.info(f"✓ PostgreSQL script generated: {sql_file}")
                     logger.info(f"  File size: {result['file_size']:,} bytes")
                     logger.info(f"  Lines: {result['lines']:,}")
                     logger.info(f"  INSERT statements: {result['insert_statements']}")
                     logger.info(f"  Generation time: {result['elapsed_time']:.2f}s")
-                    
+
                 elif app_config.database.type == "mysql":
                     # Generate MySQL script
                     mysql_config = app_config.database.mysql.model_dump() if app_config.database.mysql else {}
-                    
+
                     result = generate_mysql_script(
                         data_file=data_file,
                         schema_file=schema_file,
@@ -363,7 +365,7 @@ def execute_phases(
                         config=mysql_config,
                         table_name=table_name
                     )
-                    
+
                     logger.info(f"✓ MySQL script generated: {sql_file}")
                     logger.info(f"  File size: {result['file_size']:,} bytes")
                     logger.info(f"  Lines: {result['lines']:,}")
@@ -372,13 +374,13 @@ def execute_phases(
                 else:
                     logger.error(f"Unsupported database type: {app_config.database.type}")
                     return False
-                    
+
             except Exception as e:
                 logger.error(f"Failed to generate {db_name} script: {e}")
                 return False
     else:
         logger.info("Skipping SQL generation phase")
-    
+
     return True
 
 

@@ -7,4 +7,4 @@ database import scripts for PostgreSQL and MySQL.
 
 __version__ = "1.2.1"
 __author__ = "Kevin Jarnot"
-__email__ = "kevin@example.com"
+__email__ = "Kevin.Jarnot@UptimeInstitute.com"
