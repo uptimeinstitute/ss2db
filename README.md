@@ -9,7 +9,8 @@ A powerful command-line tool for extracting data from Smartsheet and generating 
 ## Features
 
 - 🚀 **High Performance**: Handles 90K+ row datasets with chunked processing
-- 🔄 **Rate Limiting**: Respects Smartsheet API limits (100 req/min) with automatic backoff
+- 🏢 **Workspace Support**: Process all sheets in a workspace concurrently with configurable thread pools
+- 🔄 **Rate Limiting**: Respects Smartsheet API limits (100 req/min) with thread-safe automatic backoff
 - 📊 **Dual Database Support**: Generates scripts for both PostgreSQL and MySQL
 - 🗂️ **Complex Data Types**: Supports JSONB/JSON for contacts, multi-select, and attachments
 - 📈 **Progress Tracking**: Real-time progress updates with ETA estimates
@@ -187,6 +188,9 @@ ss2db --report-id 1234567890 --db-type postgresql
 # Extract from a sheet to MySQL
 ss2db --sheet-id 9876543210 --db-type mysql --output-dir ./my-exports
 
+# Process all sheets in a workspace concurrently
+ss2db --workspace-id 1133727850647428 --db-type postgresql --max-workers 4
+
 # Dry run to see what would happen
 ss2db --report-id 1234567890 --dry-run --verbose
 ```
@@ -216,6 +220,8 @@ ss2db --report-id REPORT_ID --dry-run --verbose
 |--------|-------------|---------|
 | `--sheet-id` | Smartsheet sheet ID to process | `--sheet-id 1234567890` |
 | `--report-id` | Smartsheet report ID to process | `--report-id 9876543210` |
+| `--workspace-id` | Process all sheets in a workspace | `--workspace-id 1133727850647428` |
+| `--max-workers` | Max concurrent threads (workspace mode) | `--max-workers 4` |
 | `--db-type` | Database type (postgresql/mysql) | `--db-type postgresql` |
 | `--output-dir` | Output directory | `--output-dir ./exports` |
 | `--table-name` | Override table name | `--table-name my_data` |
@@ -230,6 +236,8 @@ ss2db --report-id REPORT_ID --dry-run --verbose
 | `--verbose` | Enable verbose logging | `--verbose` |
 | `--quiet` | Suppress non-error output | `--quiet` |
 | `--log-file` | Write logs to file | `--log-file export.log` |
+
+**Note**: Exactly one of `--sheet-id`, `--report-id`, or `--workspace-id` must be specified. The `--max-workers` option is only valid with `--workspace-id`.
 
 ## Configuration
 
@@ -300,6 +308,11 @@ processing:
   date_format: "iso"
   timezone: "UTC"
 
+# Workspace settings
+workspace:
+  max_workers: 4              # Max concurrent threads for workspace processing
+  continue_on_error: true     # Continue processing if a sheet fails
+
 # Advanced settings
 advanced:
   memory_limit_mb: 1024
@@ -344,6 +357,7 @@ advanced:
 
 ### File Structure
 
+**Single sheet/report mode:**
 ```
 exports/
 ├── {resource_id}/
@@ -352,6 +366,21 @@ exports/
 │   ├── {timestamp}_import.sql         # Database import script
 │   ├── {timestamp}_log.txt           # Execution log
 │   └── config_used.yaml              # Configuration snapshot
+```
+
+**Workspace mode:**
+```
+exports/
+├── {workspace_id}/
+│   ├── {sheet_id_1}/
+│   │   ├── {timestamp}_data.json
+│   │   ├── {timestamp}_schema.json
+│   │   ├── {timestamp}_import.sql
+│   │   └── config_used.yaml
+│   ├── {sheet_id_2}/
+│   │   └── ...
+│   └── {sheet_id_N}/
+│       └── ...
 ```
 
 ### Data File Format
@@ -421,6 +450,35 @@ ss2db --report-id 5001829600415620 \
 # [INFO] ✓ Data extraction completed: 93443 rows in 189.2s
 ```
 
+### Workspace Extraction
+
+```bash
+# Process all sheets in a workspace with 4 concurrent threads
+ss2db --workspace-id 1133727850647428 \
+      --db-type postgresql \
+      --max-workers 4 \
+      --verbose
+
+# Output:
+# [INFO] Fetching workspace 1133727850647428 contents...
+# [INFO] Found 12 sheets in workspace 'My Workspace'
+# [INFO] Processing with 4 concurrent workers...
+# [INFO]   ✓ Project Plan (3.2s)
+# [INFO]   ✓ Resource Tracker (1.8s)
+# [INFO]   ✗ Archived Sheet - API Error 403: Access denied
+# [INFO]   ✓ Budget Summary (2.1s)
+# [INFO] ============================================================
+# [INFO] WORKSPACE PROCESSING SUMMARY
+# [INFO]   Total: 12 sheets | Succeeded: 11 | Failed: 1
+# [INFO] ============================================================
+
+# Dry run to discover sheets without processing
+ss2db --workspace-id 1133727850647428 --dry-run --verbose
+
+# Use fewer workers to reduce memory usage
+ss2db --workspace-id 1133727850647428 --db-type mysql --max-workers 2
+```
+
 ### Multi-Phase Workflow
 
 ```bash
@@ -471,7 +529,8 @@ ss2db/
 │   ├── smartsheet/
 │   │   ├── client.py              # API client with rate limiting
 │   │   ├── models.py              # Data models
-│   │   └── extractors.py          # Data extraction logic
+│   │   ├── extractors.py          # Data extraction logic
+│   │   └── workspace.py           # Workspace concurrent processing
 │   ├── database/
 │   │   ├── __init__.py            # Database integration
 │   │   ├── postgresql.py          # PostgreSQL-specific code

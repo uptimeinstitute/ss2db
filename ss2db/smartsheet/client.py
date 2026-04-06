@@ -2,6 +2,7 @@
 Smartsheet API client with rate limiting and error handling.
 """
 
+import threading
 import time
 from typing import Any, Dict, Optional, List
 import requests
@@ -23,40 +24,43 @@ class RateLimiter:
     def __post_init__(self):
         self.effective_limit = self.max_requests_per_minute - self.buffer_requests
         self.window_seconds = 60
-    
+        self._lock = threading.Lock()
+
     def wait_if_needed(self) -> float:
         """Wait if necessary to respect rate limits. Returns wait time."""
-        now = time.time()
-        
-        # Remove requests older than 1 minute
-        cutoff = now - self.window_seconds
-        self.request_times = [t for t in self.request_times if t > cutoff]
-        
-        # Check if we need to wait
-        if len(self.request_times) >= self.effective_limit:
-            # Wait until the oldest request is outside the window
-            wait_until = self.request_times[0] + self.window_seconds
-            wait_time = max(0, wait_until - now)
-            
-            if wait_time > 0:
-                time.sleep(wait_time)
-                return wait_time
-        
-        # Record this request
-        self.request_times.append(now)
-        return 0.0
-    
+        # Phase 1: Check if we need to wait (under lock)
+        wait_time = 0.0
+        with self._lock:
+            now = time.time()
+            cutoff = now - self.window_seconds
+            self.request_times = [t for t in self.request_times if t > cutoff]
+
+            if len(self.request_times) >= self.effective_limit:
+                wait_until = self.request_times[0] + self.window_seconds
+                wait_time = max(0, wait_until - now)
+
+        # Phase 2: Sleep outside the lock to avoid blocking other threads
+        if wait_time > 0:
+            time.sleep(wait_time)
+
+        # Phase 3: Record this request (under lock)
+        with self._lock:
+            self.request_times.append(time.time())
+
+        return wait_time
+
     def get_current_usage(self) -> Dict[str, Any]:
         """Get current rate limit usage stats."""
-        now = time.time()
-        cutoff = now - self.window_seconds
-        recent_requests = [t for t in self.request_times if t > cutoff]
-        
-        return {
-            "requests_in_last_minute": len(recent_requests),
-            "effective_limit": self.effective_limit,
-            "usage_percentage": (len(recent_requests) / self.effective_limit) * 100 if self.effective_limit > 0 else 0
-        }
+        with self._lock:
+            now = time.time()
+            cutoff = now - self.window_seconds
+            recent_requests = [t for t in self.request_times if t > cutoff]
+
+            return {
+                "requests_in_last_minute": len(recent_requests),
+                "effective_limit": self.effective_limit,
+                "usage_percentage": (len(recent_requests) / self.effective_limit) * 100 if self.effective_limit > 0 else 0
+            }
 
 
 class SmartsheetAPIError(Exception):
@@ -252,6 +256,21 @@ class SmartsheetClient:
         data = self.get_report(report_id, include_all=True, page_size=1, page=1)
         return data.get('columns', [])
     
+    def get_workspace(self, workspace_id: str, load_all: bool = True) -> Dict[str, Any]:
+        """
+        Get workspace contents including sheets and folders.
+
+        Args:
+            workspace_id: The workspace ID to retrieve
+            load_all: If True, include nested folder contents in a single request
+        """
+        params = {}
+        if load_all:
+            params['loadAll'] = 'true'
+
+        response = self._make_request('GET', f'/workspaces/{workspace_id}', params=params)
+        return response.json()
+
     def test_connection(self) -> bool:
         """Test API connection and return success status."""
         try:
