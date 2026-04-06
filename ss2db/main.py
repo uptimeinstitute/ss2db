@@ -14,6 +14,7 @@ from ss2db.utils.logging import get_logger, log_operation_complete, log_operatio
 from ss2db.utils.files import get_file_manager, get_output_manager
 from ss2db.smartsheet.client import SmartsheetClient, SmartsheetAPIError
 from ss2db.smartsheet.extractors import SheetExtractor, ReportExtractor, DataExporter
+from ss2db.smartsheet.workspace import WorkspaceProcessor
 from ss2db.database.postgresql import generate_postgresql_script
 from ss2db.database.mysql import generate_mysql_script
 
@@ -21,6 +22,8 @@ from ss2db.database.mysql import generate_mysql_script
 @click.command()
 @click.option("--sheet-id", type=str, help="Smartsheet sheet ID to process")
 @click.option("--report-id", type=str, help="Smartsheet report ID to process")
+@click.option("--workspace-id", type=str, help="Smartsheet workspace ID to process all sheets")
+@click.option("--max-workers", type=int, help="Max concurrent threads for workspace processing")
 @click.option("--config", type=click.Path(exists=True), help="Path to config.yaml file")
 @click.option("--env-file", type=click.Path(), help="Path to .env file")
 @click.option("--output-dir", type=click.Path(), help="Directory for output files")
@@ -39,6 +42,8 @@ from ss2db.database.mysql import generate_mysql_script
 def main(
     sheet_id: Optional[str],
     report_id: Optional[str],
+    workspace_id: Optional[str],
+    max_workers: Optional[int],
     config: Optional[str],
     env_file: Optional[str],
     output_dir: Optional[str],
@@ -63,6 +68,7 @@ def main(
         ss2db --sheet-id 1234567890 --output-dir ./exports --db-type postgresql
         ss2db --report-id 9876543210 --verbose --db-type mysql
         ss2db --sheet-id 1234567890 --skip-extraction --input-data data.json
+        ss2db --workspace-id 1133727850647428 --db-type postgresql --max-workers 4
     """
     start_time = time.time()
 
@@ -94,27 +100,22 @@ def main(
             verbose=verbose
         )
 
-        # Log startup information
-        resource_id = sheet_id or report_id
-        resource_type = "sheet" if sheet_id else "report"
-
         # Validate arguments
-        if not sheet_id and not report_id:
-            click.echo("Error: Either --sheet-id or --report-id must be specified", err=True)
+        specified = sum(1 for x in [sheet_id, report_id, workspace_id] if x)
+        if specified == 0:
+            click.echo("Error: One of --sheet-id, --report-id, or --workspace-id must be specified", err=True)
+            sys.exit(1)
+        if specified > 1:
+            click.echo("Error: Only one of --sheet-id, --report-id, or --workspace-id may be specified", err=True)
             sys.exit(1)
 
-        if sheet_id and report_id:
-            click.echo("Error: Cannot specify both --sheet-id and --report-id", err=True)
+        if workspace_id and (input_data or input_schema):
+            click.echo("Error: --input-data and --input-schema are incompatible with --workspace-id", err=True)
             sys.exit(1)
 
-        log_operation_start(
-            logger,
-            f"ss2db (v{__version__}) export",
-            resource_type=resource_type,
-            resource_id=resource_id,
-            database_type=app_config.database.type,
-            dry_run=dry_run
-        )
+        if max_workers is not None and not workspace_id:
+            click.echo("Error: --max-workers can only be used with --workspace-id", err=True)
+            sys.exit(1)
 
         if dry_run:
             logger.info("DRY RUN MODE - No files will be created or modified")
@@ -126,6 +127,75 @@ def main(
         if not dry_run:
             output_path.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created output directory: {output_path}")
+
+        # Workspace mode: process all sheets in workspace concurrently
+        if workspace_id:
+            log_operation_start(
+                logger,
+                f"ss2db (v{__version__}) workspace export",
+                resource_type="workspace",
+                resource_id=workspace_id,
+                database_type=app_config.database.type,
+                dry_run=dry_run
+            )
+
+            effective_max_workers = max_workers or app_config.workspace.max_workers
+
+            # Create shared client
+            try:
+                api_token = config_manager.get_api_token()
+                client = SmartsheetClient(api_token, app_config.smartsheet.model_dump())
+                if not client.test_connection():
+                    logger.error("Failed to connect to Smartsheet API")
+                    sys.exit(1)
+                logger.info("✓ Smartsheet API connection verified")
+            except Exception as e:
+                logger.error(f"Failed to initialize Smartsheet client: {e}")
+                sys.exit(1)
+
+            processor = WorkspaceProcessor(
+                client=client,
+                config_manager=config_manager,
+                app_config=app_config,
+                max_workers=effective_max_workers,
+                logger=logger,
+            )
+
+            results = processor.process_workspace(
+                workspace_id=workspace_id,
+                table_name=table_name,
+                db_type=db_type,
+                skip_extraction=skip_extraction,
+                skip_schema=skip_schema,
+                skip_sql=skip_sql,
+                dry_run=dry_run,
+            )
+
+            processor.print_summary(results)
+
+            duration = time.time() - start_time
+            failed = [r for r in results if not r.success]
+            if failed:
+                logger.warning(f"{len(failed)} of {len(results)} sheets failed")
+                # Exit 1 only if ALL sheets failed
+                if len(failed) == len(results):
+                    sys.exit(1)
+
+            log_operation_complete(logger, "ss2db workspace export", duration)
+            sys.exit(0)
+
+        # Single sheet/report mode
+        resource_id = sheet_id or report_id
+        resource_type = "sheet" if sheet_id else "report"
+
+        log_operation_start(
+            logger,
+            f"ss2db (v{__version__}) export",
+            resource_type=resource_type,
+            resource_id=resource_id,
+            database_type=app_config.database.type,
+            dry_run=dry_run
+        )
 
         # Execute processing phases
         success = execute_phases(
@@ -174,16 +244,25 @@ def execute_phases(
     input_data: Optional[str],
     input_schema: Optional[str],
     dry_run: bool,
-    logger
+    logger,
+    smartsheet_client: Optional[SmartsheetClient] = None,
+    output_dir_override: Optional[Path] = None,
 ) -> bool:
-    """Execute the processing phases."""
+    """Execute the processing phases.
+
+    Args:
+        smartsheet_client: Optional pre-initialized client to reuse (for workspace mode).
+            When provided, skips client creation and connection testing.
+        output_dir_override: Optional path to override the default output directory.
+            Used by workspace mode to nest output under workspace_id/sheet_id/.
+    """
 
     resource_id = sheet_id or report_id
     resource_type = "sheet" if sheet_id else "report"
 
     # Create output filenames
     timestamp = time.strftime(app_config.output.timestamp_format)
-    output_dir = Path(app_config.output.directory) / resource_id
+    output_dir = output_dir_override or (Path(app_config.output.directory) / resource_id)
 
     data_file = output_dir / f"{timestamp}_data.json"
     schema_file = output_dir / f"{timestamp}_schema.json"
@@ -199,8 +278,7 @@ def execute_phases(
         save_config_snapshot(app_config, config_file, logger)
 
     # Initialize Smartsheet client if needed
-    smartsheet_client = None
-    if not skip_extraction or not skip_schema:
+    if smartsheet_client is None and (not skip_extraction or not skip_schema):
         if not dry_run:
             try:
                 api_token = config_manager.get_api_token()

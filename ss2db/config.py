@@ -107,7 +107,7 @@ class LoggingConfig(BaseModel):
 
 class AdvancedConfig(BaseModel):
     """Advanced configuration options."""
-    
+
     memory_limit_mb: int = 1024
     chunk_size: int = 10000
     parallel_processing: bool = False
@@ -115,15 +115,23 @@ class AdvancedConfig(BaseModel):
     cache_ttl_hours: int = 24
 
 
+class WorkspaceConfig(BaseModel):
+    """Workspace processing configuration."""
+
+    max_workers: int = 4
+    continue_on_error: bool = True
+
+
 class Config(BaseModel):
     """Main configuration class."""
-    
+
     smartsheet: SmartsheetConfig = Field(default_factory=SmartsheetConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     processing: ProcessingConfig = Field(default_factory=ProcessingConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     advanced: AdvancedConfig = Field(default_factory=AdvancedConfig)
+    workspace: WorkspaceConfig = Field(default_factory=WorkspaceConfig)
 
 
 class ConfigManager:
