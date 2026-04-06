@@ -3,11 +3,35 @@
 import logging
 import logging.handlers
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
 from rich.logging import RichHandler
+
+
+class ThreadNumberFilter(logging.Filter):
+    """Logging filter that assigns a sequential 0-based number to each thread.
+
+    The first thread to log gets number 0, the next gets 1, etc.
+    The number is added to each log record as ``thread_num``.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self._lock = threading.Lock()
+        self._map: dict[int, int] = {}
+        self._next = 0
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        tid = record.thread
+        with self._lock:
+            if tid not in self._map:
+                self._map[tid] = self._next
+                self._next += 1
+            record.thread_num = self._map[tid]
+        return True
 
 
 def setup_logging(
@@ -36,7 +60,10 @@ def setup_logging(
     
     # Clear existing handlers
     logger.handlers.clear()
-    
+
+    # Shared filter that assigns sequential thread numbers
+    thread_filter = ThreadNumberFilter()
+
     # Console handler with Rich formatting
     if not quiet:
         console = Console(stderr=True)
@@ -49,11 +76,12 @@ def setup_logging(
         )
         
         if format_type == "simple":
-            console_format = "%(message)s"
+            console_format = "[thread %(thread_num)d] %(message)s"
         else:
-            console_format = "%(name)s: %(message)s"
+            console_format = "[thread %(thread_num)d] %(name)s: %(message)s"
         
         console_handler.setFormatter(logging.Formatter(console_format))
+        console_handler.addFilter(thread_filter)
         console_handler.setLevel(log_level)
         logger.addHandler(console_handler)
     
@@ -84,10 +112,11 @@ def setup_logging(
         
         # Detailed format for file logging
         file_format = (
-            "%(asctime)s - %(name)s - %(levelname)s - "
+            "%(asctime)s - [thread %(thread_num)d] %(name)s - %(levelname)s - "
             "%(filename)s:%(lineno)d - %(message)s"
         )
         file_handler.setFormatter(logging.Formatter(file_format))
+        file_handler.addFilter(thread_filter)
         file_handler.setLevel(logging.DEBUG)  # Always debug level for files
         logger.addHandler(file_handler)
     
