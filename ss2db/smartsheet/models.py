@@ -253,6 +253,9 @@ class SmartsheetSchema:
     modified_at: Optional[datetime] = None
     permalink: Optional[str] = None
     source_type: str = "sheet"  # "sheet" or "report"
+    workspace_id: Optional[str] = None
+    workspace_name: Optional[str] = None
+    processed_at: Optional[datetime] = None
 
     @classmethod
     def from_sheet_response(cls, data: Dict[str, Any]) -> 'SmartsheetSchema':
@@ -326,7 +329,10 @@ class SmartsheetSchema:
             created_at=cls._parse_datetime(data.get('created_at')),
             modified_at=cls._parse_datetime(data.get('modified_at')),
             permalink=data.get('permalink'),
-            source_type=data.get('source_type', 'sheet')
+            source_type=data.get('source_type', 'sheet'),
+            workspace_id=data.get('workspace_id'),
+            workspace_name=data.get('workspace_name'),
+            processed_at=cls._parse_datetime(data.get('processed_at')),
         )
 
     @staticmethod
@@ -398,7 +404,7 @@ class SmartsheetSchema:
     def to_dict(self) -> Dict[str, Any]:
         """Convert schema to dictionary for JSON serialization."""
 
-        return {
+        result = {
             'id': self.id,
             'name': self.name,
             'source_type': self.source_type,
@@ -426,6 +432,15 @@ class SmartsheetSchema:
                 for col in self.columns
             ]
         }
+
+        if self.workspace_id is not None:
+            result['workspace_id'] = self.workspace_id
+        if self.workspace_name is not None:
+            result['workspace_name'] = self.workspace_name
+        if self.processed_at is not None:
+            result['processed_at'] = self.processed_at.isoformat()
+
+        return result
 
 
 @dataclass

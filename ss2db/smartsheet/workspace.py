@@ -62,12 +62,15 @@ class WorkspaceProcessor:
         app_config: Any,
         max_workers: int,
         logger: Any = None,
+        date_prefix: Optional[str] = None,
     ):
         self.client = client
         self.config_manager = config_manager
         self.app_config = app_config
         self.max_workers = max_workers
         self.logger = logger or get_logger(__name__)
+        self.date_prefix = date_prefix
+        self.workspace_name: Optional[str] = None
 
     def process_workspace(
         self,
@@ -97,6 +100,7 @@ class WorkspaceProcessor:
         self.logger.info(f"Fetching workspace {workspace_id} contents...")
         workspace_data = self.client.get_workspace(workspace_id)
         workspace_name = workspace_data.get("name", workspace_id)
+        self.workspace_name = workspace_name
 
         # Collect all sheets
         sheets = collect_sheets_from_workspace(workspace_data)
@@ -181,8 +185,11 @@ class WorkspaceProcessor:
         start_time = time.time()
 
         try:
-            # Output goes to {output_dir}/{workspace_id}/{sheet_id}/
-            output_dir = Path(self.app_config.output.directory) / workspace_id / sheet_id
+            # Output goes to {output_dir}/[{date_prefix}/]{workspace_id}/{sheet_id}/
+            base = Path(self.app_config.output.directory)
+            if self.date_prefix:
+                base = base / self.date_prefix
+            output_dir = base / workspace_id / sheet_id
 
             success = execute_phases(
                 config_manager=self.config_manager,
@@ -200,6 +207,8 @@ class WorkspaceProcessor:
                 logger=self.logger,
                 smartsheet_client=self.client,
                 output_dir_override=output_dir,
+                workspace_id=workspace_id,
+                workspace_name=self.workspace_name,
             )
 
             duration = time.time() - start_time

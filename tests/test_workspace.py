@@ -320,6 +320,150 @@ class TestWorkspaceProcessor:
         assert "Failed: 1" in summary_text
 
 
+class TestOrganizeByDate:
+    """Tests for --organize-by-date directory structure."""
+
+    def _make_processor(self, date_prefix=None, max_workers=1):
+        """Create a WorkspaceProcessor with optional date prefix."""
+        client = Mock()
+        config_manager = Mock()
+        app_config = Mock()
+        app_config.output.directory = "/tmp/test_exports"
+        logger = Mock()
+
+        processor = WorkspaceProcessor(
+            client=client,
+            config_manager=config_manager,
+            app_config=app_config,
+            max_workers=max_workers,
+            logger=logger,
+            date_prefix=date_prefix,
+        )
+        return processor
+
+    @patch("ss2db.main.execute_phases")
+    def test_workspace_output_with_date_prefix(self, mock_execute):
+        """Workspace mode with date prefix: {output_dir}/{date}/{workspace_id}/{sheet_id}/"""
+        mock_execute.return_value = True
+        captured_calls = []
+
+        def capture_call(**kwargs):
+            captured_calls.append(kwargs)
+            return True
+
+        mock_execute.side_effect = capture_call
+
+        processor = self._make_processor(date_prefix="2026-04-06")
+        processor.client.get_workspace.return_value = WORKSPACE_FLAT
+
+        processor.process_workspace(workspace_id="1111111111111111")
+
+        assert len(captured_calls) == 2
+        for call_kwargs in captured_calls:
+            output_dir = str(call_kwargs["output_dir_override"])
+            assert output_dir.startswith("/tmp/test_exports/2026-04-06/1111111111111111/")
+            sheet_id = output_dir.split("/")[-1]
+            assert sheet_id in ["1001", "1002"]
+
+    @patch("ss2db.main.execute_phases")
+    def test_workspace_output_without_date_prefix(self, mock_execute):
+        """Workspace mode without date prefix: {output_dir}/{workspace_id}/{sheet_id}/"""
+        mock_execute.return_value = True
+        captured_calls = []
+
+        def capture_call(**kwargs):
+            captured_calls.append(kwargs)
+            return True
+
+        mock_execute.side_effect = capture_call
+
+        processor = self._make_processor(date_prefix=None)
+        processor.client.get_workspace.return_value = WORKSPACE_FLAT
+
+        processor.process_workspace(workspace_id="1111111111111111")
+
+        assert len(captured_calls) == 2
+        for call_kwargs in captured_calls:
+            output_dir = str(call_kwargs["output_dir_override"])
+            # No date component in path
+            assert "/2026-" not in output_dir
+            assert output_dir.startswith("/tmp/test_exports/1111111111111111/")
+
+    def test_date_prefix_stored_on_processor(self):
+        """date_prefix is stored and accessible on the processor."""
+        processor = self._make_processor(date_prefix="2026-04-06")
+        assert processor.date_prefix == "2026-04-06"
+
+        processor_none = self._make_processor(date_prefix=None)
+        assert processor_none.date_prefix is None
+
+
+class TestExecutePhasesDatePrefix:
+    """Tests for date prefix in execute_phases (single sheet/report mode)."""
+
+    def test_output_dir_with_date_prefix(self):
+        """Single mode with date prefix builds path: {output_dir}/{date}/{resource_id}/"""
+        from ss2db.main import execute_phases
+        from ss2db.config import Config
+
+        config = Config()
+        config.output.directory = "/tmp/test_exports"
+        config_manager = Mock()
+        logger = Mock()
+
+        # Use dry_run=True to avoid file I/O. Check the dry-run "Would save to" log messages.
+        execute_phases(
+            config_manager=config_manager,
+            app_config=config,
+            sheet_id="9999",
+            report_id=None,
+            table_name=None,
+            db_type="postgresql",
+            skip_extraction=False,
+            skip_schema=True,
+            skip_sql=True,
+            input_data=None,
+            input_schema=None,
+            dry_run=True,
+            logger=logger,
+            date_prefix="2026-04-06",
+        )
+
+        # dry_run logs "Would extract data" and "Would save to: {path}" which includes the output dir
+        all_calls = " ".join(str(c) for c in logger.info.call_args_list)
+        assert "2026-04-06" in all_calls
+
+    def test_output_dir_without_date_prefix(self):
+        """Single mode without date prefix builds path: {output_dir}/{resource_id}/"""
+        from ss2db.main import execute_phases
+        from ss2db.config import Config
+
+        config = Config()
+        config.output.directory = "/tmp/test_exports"
+        config_manager = Mock()
+        logger = Mock()
+
+        execute_phases(
+            config_manager=config_manager,
+            app_config=config,
+            sheet_id="9999",
+            report_id=None,
+            table_name=None,
+            db_type="postgresql",
+            skip_extraction=False,
+            skip_schema=True,
+            skip_sql=True,
+            input_data=None,
+            input_schema=None,
+            dry_run=True,
+            logger=logger,
+            date_prefix=None,
+        )
+
+        all_calls = " ".join(str(c) for c in logger.info.call_args_list)
+        assert "2026-04-06" not in all_calls
+
+
 class TestRateLimiterThreadSafety:
     """Tests for thread-safe RateLimiter behavior."""
 
@@ -392,6 +536,138 @@ class TestRateLimiterThreadSafety:
             t.join(timeout=30)
 
         assert errors == [], f"Threads raised exceptions: {errors}"
+
+
+class TestWorkspaceMetadata:
+    """Tests for workspace metadata in schema and JSON data files."""
+
+    def test_schema_to_dict_includes_workspace_fields(self):
+        """Schema.to_dict() includes workspace_id and workspace_name when set."""
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        schema = SmartsheetSchema(
+            id=1234,
+            name="Test Sheet",
+            columns=[],
+            workspace_id="9876543210",
+            workspace_name="My Workspace",
+        )
+
+        result = schema.to_dict()
+        assert result["workspace_id"] == "9876543210"
+        assert result["workspace_name"] == "My Workspace"
+
+    def test_schema_to_dict_includes_processed_at(self):
+        """Schema.to_dict() includes processed_at when set."""
+        from datetime import datetime
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        ts = datetime(2026, 4, 6, 14, 30, 0)
+        schema = SmartsheetSchema(
+            id=1234,
+            name="Test Sheet",
+            columns=[],
+            processed_at=ts,
+        )
+
+        result = schema.to_dict()
+        assert result["processed_at"] == "2026-04-06T14:30:00"
+
+    def test_schema_to_dict_omits_processed_at_when_none(self):
+        """Schema.to_dict() omits processed_at when not set."""
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        schema = SmartsheetSchema(id=1234, name="Test Sheet", columns=[])
+        result = schema.to_dict()
+        assert "processed_at" not in result
+
+    def test_schema_from_dict_round_trips_processed_at(self):
+        """Schema.from_dict() preserves processed_at."""
+        from datetime import datetime, timezone
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        ts = datetime(2026, 4, 6, 14, 30, 0)
+        original = SmartsheetSchema(
+            id=1234, name="Test Sheet", columns=[], processed_at=ts,
+        )
+        data = original.to_dict()
+        restored = SmartsheetSchema.from_dict(data)
+        assert restored.processed_at == ts
+
+    def test_schema_to_dict_omits_workspace_fields_when_none(self):
+        """Schema.to_dict() omits workspace fields when not set."""
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        schema = SmartsheetSchema(
+            id=1234,
+            name="Test Sheet",
+            columns=[],
+        )
+
+        result = schema.to_dict()
+        assert "workspace_id" not in result
+        assert "workspace_name" not in result
+
+    def test_schema_from_dict_round_trips_workspace_fields(self):
+        """Schema.from_dict() preserves workspace_id and workspace_name."""
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        original = SmartsheetSchema(
+            id=1234,
+            name="Test Sheet",
+            columns=[],
+            workspace_id="9876543210",
+            workspace_name="My Workspace",
+        )
+
+        data = original.to_dict()
+        restored = SmartsheetSchema.from_dict(data)
+
+        assert restored.workspace_id == "9876543210"
+        assert restored.workspace_name == "My Workspace"
+
+    def test_schema_from_dict_without_workspace_fields(self):
+        """Schema.from_dict() handles missing workspace fields gracefully."""
+        from ss2db.smartsheet.models import SmartsheetSchema
+
+        data = {"id": 1234, "name": "Test Sheet", "columns": []}
+        restored = SmartsheetSchema.from_dict(data)
+
+        assert restored.workspace_id is None
+        assert restored.workspace_name is None
+
+    @patch("ss2db.main.execute_phases")
+    def test_workspace_processor_passes_workspace_metadata(self, mock_execute):
+        """WorkspaceProcessor passes workspace_id and workspace_name to execute_phases."""
+        captured_calls = []
+
+        def capture_call(**kwargs):
+            captured_calls.append(kwargs)
+            return True
+
+        mock_execute.side_effect = capture_call
+
+        client = Mock()
+        client.get_workspace.return_value = WORKSPACE_FLAT
+        config_manager = Mock()
+        app_config = Mock()
+        app_config.output.directory = "/tmp/test_exports"
+        logger = Mock()
+
+        processor = WorkspaceProcessor(
+            client=client,
+            config_manager=config_manager,
+            app_config=app_config,
+            max_workers=1,
+            logger=logger,
+        )
+
+        processor.process_workspace(workspace_id="1111111111111111")
+
+        assert len(captured_calls) == 2
+        for call_kwargs in captured_calls:
+            assert call_kwargs["workspace_id"] == "1111111111111111"
+            assert call_kwargs["workspace_name"] == "Test Workspace"
 
 
 class TestGetWorkspace:
