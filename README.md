@@ -232,6 +232,7 @@ ss2db --report-id REPORT_ID --dry-run --verbose
 | `--skip-sql` | Skip SQL generation phase | `--skip-sql` |
 | `--input-data` | Use existing data file | `--input-data data.json` |
 | `--input-schema` | Use existing schema file | `--input-schema schema.json` |
+| `--organize-by-date` | Use YYYY-MM-DD as top-level output dir | `--organize-by-date` |
 | `--dry-run` | Show what would be done | `--dry-run` |
 | `--verbose` | Enable verbose logging | `--verbose` |
 | `--quiet` | Suppress non-error output | `--quiet` |
@@ -383,6 +384,20 @@ exports/
 │       └── ...
 ```
 
+**With `--organize-by-date`:**
+```
+exports/
+├── 2026-04-06/
+│   ├── {resource_id}/              # single sheet/report
+│   │   ├── {timestamp}_data.json
+│   │   └── ...
+│   └── {workspace_id}/            # workspace mode
+│       ├── {sheet_id_1}/
+│       │   └── ...
+│       └── {sheet_id_N}/
+│           └── ...
+```
+
 ### Data File Format
 
 ```json
@@ -392,6 +407,8 @@ exports/
     "name": "Project Data",
     "source_type": "report",
     "total_row_count": 1000,
+    "workspace_id": "1133727850647428",
+    "workspace_name": "My Workspace",
     "columns": [...]
   },
   "rows": [
@@ -406,6 +423,8 @@ exports/
   ]
 }
 ```
+
+**Note**: The `workspace_id` and `workspace_name` fields are included in the metadata only when processing sheets within a workspace (`--workspace-id`).
 
 ### Schema File Format
 

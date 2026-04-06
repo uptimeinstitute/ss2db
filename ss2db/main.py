@@ -2,6 +2,7 @@
 
 import sys
 import time
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -34,6 +35,7 @@ from ss2db.database.mysql import generate_mysql_script
 @click.option("--skip-sql", is_flag=True, help="Skip SQL generation phase")
 @click.option("--input-data", type=click.Path(exists=True), help="Use existing data file")
 @click.option("--input-schema", type=click.Path(exists=True), help="Use existing schema file")
+@click.option("--organize-by-date", is_flag=True, help="Use current date (YYYY-MM-DD) as top-level output directory")
 @click.option("--dry-run", is_flag=True, help="Show what would be done without executing")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
@@ -54,6 +56,7 @@ def main(
     skip_sql: bool,
     input_data: Optional[str],
     input_schema: Optional[str],
+    organize_by_date: bool,
     dry_run: bool,
     verbose: bool,
     quiet: bool,
@@ -117,8 +120,14 @@ def main(
             click.echo("Error: --max-workers can only be used with --workspace-id", err=True)
             sys.exit(1)
 
+        # Compute date prefix for --organize-by-date
+        date_prefix = date.today().isoformat() if organize_by_date else None
+
         if dry_run:
             logger.info("DRY RUN MODE - No files will be created or modified")
+
+        if date_prefix:
+            logger.info(f"Organizing output by date: {date_prefix}")
 
         logger.info(f"Database type: {app_config.database.type}")
 
@@ -159,6 +168,7 @@ def main(
                 app_config=app_config,
                 max_workers=effective_max_workers,
                 logger=logger,
+                date_prefix=date_prefix,
             )
 
             results = processor.process_workspace(
@@ -211,7 +221,8 @@ def main(
             input_data=input_data,
             input_schema=input_schema,
             dry_run=dry_run,
-            logger=logger
+            logger=logger,
+            date_prefix=date_prefix,
         )
 
         # Log completion
@@ -247,6 +258,9 @@ def execute_phases(
     logger,
     smartsheet_client: Optional[SmartsheetClient] = None,
     output_dir_override: Optional[Path] = None,
+    date_prefix: Optional[str] = None,
+    workspace_id: Optional[str] = None,
+    workspace_name: Optional[str] = None,
 ) -> bool:
     """Execute the processing phases.
 
@@ -255,6 +269,10 @@ def execute_phases(
             When provided, skips client creation and connection testing.
         output_dir_override: Optional path to override the default output directory.
             Used by workspace mode to nest output under workspace_id/sheet_id/.
+        date_prefix: Optional date string (YYYY-MM-DD) to use as top-level output directory.
+            Used by --organize-by-date flag.
+        workspace_id: Optional workspace ID to include in JSON data file metadata.
+        workspace_name: Optional workspace name to include in JSON data file metadata.
     """
 
     resource_id = sheet_id or report_id
@@ -262,7 +280,13 @@ def execute_phases(
 
     # Create output filenames
     timestamp = time.strftime(app_config.output.timestamp_format)
-    output_dir = output_dir_override or (Path(app_config.output.directory) / resource_id)
+    if output_dir_override:
+        output_dir = output_dir_override
+    else:
+        base = Path(app_config.output.directory)
+        if date_prefix:
+            base = base / date_prefix
+        output_dir = base / resource_id
 
     data_file = output_dir / f"{timestamp}_data.json"
     schema_file = output_dir / f"{timestamp}_schema.json"
@@ -317,6 +341,12 @@ def execute_phases(
                 logger.info("Getting schema information...")
                 schema = extractor.extract_schema(resource_id)
 
+                # Attach workspace metadata if processing within a workspace
+                if workspace_id:
+                    schema.workspace_id = workspace_id
+                if workspace_name:
+                    schema.workspace_name = workspace_name
+
                 # Extract data with progress tracking
                 logger.info(f"Extracting data: {schema.total_row_count or 'unknown'} rows, {len(schema.columns)} columns")
 
@@ -330,6 +360,9 @@ def execute_phases(
 
                 # Extract data in chunks
                 rows_generator = extractor.extract_data(resource_id, progress_callback)
+
+                # Record when this data file was created
+                schema.processed_at = datetime.now()
 
                 # Export data to file
                 export_result = data_exporter.export_data_chunked(rows_generator, schema, data_file)
@@ -377,6 +410,13 @@ def execute_phases(
 
                     # Extract schema
                     schema = extractor.extract_schema(resource_id)
+
+                    # Attach workspace metadata if processing within a workspace
+                    if workspace_id:
+                        schema.workspace_id = workspace_id
+                    if workspace_name:
+                        schema.workspace_name = workspace_name
+
                     data_exporter.export_schema(schema, schema_file)
                     logger.info(f"✓ Schema extracted: {len(schema.columns)} columns")
 
